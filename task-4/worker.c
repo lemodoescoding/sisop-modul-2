@@ -1,5 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +9,7 @@
 #include <sys/msg.h>
 #include <sys/sem.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -21,6 +24,10 @@ typedef struct {
   long type;
   char payload[STR_INIT_SIZE];
 } QueuedMessage;
+
+typedef struct {
+  int worker_id;
+} ThreadWorker;
 
 void sigint_handler(int sig) { STOP_PROGRAM = 1; }
 
@@ -39,15 +46,10 @@ int createFileForMQ(const char *name) {
   return 0;
 }
 
-void *processMessageThread(int workerX) { return NULL; }
+void *processMessageThread(void *args) {
+  ThreadWorker *targs = (ThreadWorker *)args;
 
-int main(int argc, char *argv[]) {
-  int worker_id = atoi(argv[1]);
-
-  /* signal(SIGINT, sigint_handler); */
-  /* signal(SIGKILL, sigint_handler); */
-  /* signal(SIGTERM, sigint_handler); */
-
+  int worker_id = targs->worker_id;
   if (createFileForMQ(MQ_PATH) == -1)
     report("open() failed to create mq file...", 1);
 
@@ -99,5 +101,38 @@ int main(int argc, char *argv[]) {
   }
 
   msgctl(mq_id, IPC_RMID, NULL);
+  printf("Thread exiting....\n");
+
+  pthread_exit(NULL);
+}
+
+void terminateProgram(int sig) { STOP_PROGRAM = 1; }
+
+int main(int argc, char *argv[]) {
+  int num_workers = atoi(argv[1]);
+  if (num_workers < 0 || argc < 2) {
+    fprintf(stderr, "num of workers need to be greater than 1");
+    exit(-1);
+  }
+
+  signal(SIGINT, terminateProgram);
+  signal(SIGTERM, terminateProgram);
+
+  pthread_t workers[num_workers];
+  for (int i = 0; i < num_workers; i++) {
+    ThreadWorker *args = malloc(sizeof(ThreadWorker));
+    args->worker_id = i + 1;
+
+    if (pthread_create(&workers[i], NULL, processMessageThread, (void *)args) !=
+        0)
+      report("pthread_create failed...", 1);
+  }
+
+  for (int i = 0; i < num_workers; i++) {
+    pthread_join(workers[i], NULL);
+
+    printf("Thread closing...\n");
+  }
+
   return 0;
 }
