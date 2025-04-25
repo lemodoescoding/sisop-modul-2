@@ -24,11 +24,11 @@
 #define MH_COUNT 4
 
 const char *mh_urls[4] = {"https://api.jikan.moe/v4/manga/154063",
-                          "https://api.jikan.moe/v4/manga/168827",
+                          "https://api.jikan.moe/v4/manga/147205",
                           "https://api.jikan.moe/v4/manga/169731",
                           "https://api.jikan.moe/v4/manga/175521"};
 
-const char *mh_heroines[4] = {"Seymour", "Lia", "Adelia",
+const char *mh_heroines[4] = {"Lia", "Tia", "Adelia",
                               "Ophelia"}; // based on the API an some research,
                                           // and sorted by mh_urls
 
