@@ -23,7 +23,7 @@
 #define BUF_SIZE 8192
 #define MH_COUNT 4
 
-const char *mh_urls[4] = {"https://api.jikan.moe/v4/manga/154063",
+const char *mh_urls[4] = {"https://api.jikan.moe/v4/manga/168827",
                           "https://api.jikan.moe/v4/manga/147205",
                           "https://api.jikan.moe/v4/manga/169731",
                           "https://api.jikan.moe/v4/manga/175521"};
