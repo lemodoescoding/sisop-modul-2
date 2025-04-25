@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < countReceive; i++) {
 
           msgsnd(mq_id, qms[i], sizeof(qms[i]->payload), IPC_NOWAIT);
-          printf("%s - %lu\n", qms[i]->payload, qms[i]->type);
+          /* printf("%s - %lu\n", qms[i]->payload, qms[i]->type); */
 
           free(qms[i]);
 

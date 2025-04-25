@@ -101,7 +101,7 @@ void *processMessageThread(void *args) {
   }
 
   msgctl(mq_id, IPC_RMID, NULL);
-  printf("Thread exiting....\n");
+  /* printf("Thread exiting....\n"); */
 
   pthread_exit(NULL);
 }
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < num_workers; i++) {
     pthread_join(workers[i], NULL);
 
-    printf("Thread closing...\n");
+    /* printf("Thread closing...\n"); */
   }
 
   return 0;
