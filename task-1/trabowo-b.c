@@ -1,32 +1,33 @@
-#include <stdio.h>
-#include <time.h>
-#include <string.h>
-#include <stdlib.h>
 #include <dirent.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
-int main(){
-    DIR *folder=opendir("film");
+int main() {
+  DIR *folder = opendir("film");
 
-    struct dirent *entri;
-    char *listfilm[50];
-    int count=0;
+  struct dirent *entri;
+  char *listfilm[50];
+  int count = 0;
 
-    while((entri=readdir(folder))!=NULL){
-        int len=strlen(entry->d_name);
-        if(len>4 && strcmp(entry->d_name+len-4, ".jpg")==0){
-            listfilm[count]=strdup(entry->d_name);
-            count++;
-        }
+  while ((entri = readdir(folder)) != NULL) {
+    int len = strlen(entri->d_name);
+    if (len > 4 && strcmp(entri->d_name + len - 4, ".jpg") == 0) {
+      listfilm[count] = strdup(entri->d_name);
+      count++;
     }
-    closedir(folder);
+  }
+  closedir(folder);
 
-    srand(time(NULL));
+  srand(time(NULL));
 
-    int index=rand()%count;
+  int index = rand() % count;
 
-    printf("Film for Trabowo & Peddy: %s\n", listfilm[index]);
+  printf("Film for Trabowo & Peddy: %s\n", listfilm[index]);
 
-    for(int i=0; i<count; i++) free(listfilm[i]);
+  for (int i = 0; i < count; i++)
+    free(listfilm[i]);
 
-    return 0;
+  return 0;
 }
