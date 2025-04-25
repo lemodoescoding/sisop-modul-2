@@ -1,7 +1,6 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <semaphore.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,7 +11,7 @@
 
 #define SHM_KEY 1234
 #define SEM_KEY 5678
-#define SHM_SIZE 4096
+
 #define SYSTEM_LOG "./sistem.log"
 
 #define SEM_EMPTY 0
@@ -51,7 +50,8 @@ int main() {
   if (getcwd(cwd, sizeof(cwd)) == NULL)
     report("getcwd()...", 1);
 
-  if ((shmid = shmget(SHM_KEY, sizeof(Message), IPC_CREAT | 0666)) < 0)
+  shmid = shmget(SHM_KEY, sizeof(Message), IPC_CREAT | 0666);
+  if (shmid < 0)
     report("shmget()...", 1);
 
   if ((shm_ptr = (Message *)shmat(shmid, NULL, 0)) == (void *)-1)
@@ -71,7 +71,7 @@ int main() {
   sscanf(input, "%[^\n;];%lu", message, &count);
 
   for (unsigned long i = 0; i <= count + 1; ++i) {
-    printf("yes");
+    /* printf("yes"); */
     mtx_lock(semid, SEM_EMPTY);
 
     if (i == count + 1) {

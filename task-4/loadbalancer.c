@@ -14,7 +14,6 @@
 
 #define SHM_KEY 1234
 #define SEM_KEY 5678
-#define SHM_SIZE 4096
 
 #define SYSTEM_LOG "./sistem.log"
 #define SEM_FILELOG "/task4file_semaphore_key"
@@ -94,13 +93,12 @@ int main(int argc, char *argv[]) {
   if (createFileForMQ(MQ_PATH) == -1)
     report("open() failed to create mq file...", 1);
 
-  pid_t worker_pgid;
-
   int shmid, semid;
   int sem_logid;
   Message *shm_ptr;
 
-  if ((shmid = shmget(SHM_KEY, SHM_SIZE, IPC_CREAT | 0666)) < 0)
+  shmid = shmget(SHM_KEY, sizeof(Message), IPC_CREAT | 0666);
+  if (shmid < 0)
     report("shmget()...", 1);
 
   if ((shm_ptr = (Message *)shmat(shmid, NULL, 0)) == (void *)-1)
@@ -130,7 +128,7 @@ int main(int argc, char *argv[]) {
 
     if (strcmp(shm_ptr->message, "start_of_message") == 0 &&
         shm_ptr->ready == 1) {
-      printf("Message about to send: %lu\n", shm_ptr->count);
+      /* printf("Message about to send: %lu\n", shm_ptr->count); */
       countReceive = shm_ptr->count;
 
       qms = (QueuedMessage **)malloc(sizeof(QueuedMessage) * countReceive);
@@ -142,7 +140,7 @@ int main(int argc, char *argv[]) {
 
     else if (strcmp(shm_ptr->message, "end_of_message") == 0 &&
              shm_ptr->ready == 1) {
-      printf("%lu messages received\n", countReceive);
+      /* printf("%lu messages received\n", countReceive); */
 
       if (fork() == 0) {
         for (int i = 0; i < countReceive; i++) {

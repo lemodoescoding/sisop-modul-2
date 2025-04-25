@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
       pf = fopen(SYSTEM_LOG, "a");
 
       if (strcmp(msg.payload, "end_of_mq_worker") == 0) {
-        printf("END OF QUEUE\n");
+        /* printf("END OF QUEUE\n"); */
         fprintf(pf, "Worker %d: %d messages\n", worker_id, countMessages);
 
         countMessages = 0;
