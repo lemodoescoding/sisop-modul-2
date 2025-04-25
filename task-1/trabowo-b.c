@@ -7,11 +7,11 @@
 int main(){
     DIR *folder=opendir("film");
 
-    struct dirent *entry;
+    struct dirent *entri;
     char *listfilm[50];
     int count=0;
 
-    while((entry=readdir(folder))!=NULL){
+    while((entri=readdir(folder))!=NULL){
         int len=strlen(entry->d_name);
         if(len>4 && strcmp(entry->d_name+len-4, ".jpg")==0){
             listfilm[count]=strdup(entry->d_name);
