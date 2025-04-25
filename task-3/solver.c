@@ -60,7 +60,7 @@ void createFolderMk(void *arg) {
 
   snprintf(path, sizeof(path), "%s/%s", cwd, (char *)arg);
 
-  printf("Creating folder '%s'...\n", (char *)arg);
+  /* printf("Creating folder '%s'...\n", (char *)arg); */
   char *argv[] = {"mkdir", "-p", path, NULL};
   execv("/bin/mkdir", argv);
 }
@@ -561,11 +561,11 @@ void performDeleteImagesSort() {
   int count;
 
   listFolders(dirname, &folders, &count);
-  printf("Begin Deleting... - %d\n", count);
+  /* printf("Begin Deleting... - %d\n", count); */
 
   for (int i = 0; i < count; i++) {
     if (fork() == 0) {
-      printf("Deleteting folder on path: %s...\n", folders[i]);
+      /* printf("Deleteting folder on path: %s...\n", folders[i]); */
       char *argv[] = {"rm", "-rf", folders[i], NULL};
       execv("/bin/rm", argv);
     }
@@ -589,7 +589,7 @@ void perfromFetchDataManhwa(ManhwaStats *mh) {
   int pipeFD[4][2];
   createFolderSysCall("Manhwa");
 
-  printf("Performing curl fetch...\n");
+  /* printf("Performing curl fetch...\n"); */
 
   pid_t fetch_pids[MH_COUNT];
   for (int i = 0; i < MH_COUNT; i++) {
