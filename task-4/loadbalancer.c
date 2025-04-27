@@ -153,6 +153,8 @@ int main(int argc, char *argv[]) {
           usleep(500);
         }
 
+        usleep(500);
+
         QueuedMessage qm = {0};
         for (int i = 1; i <= loadBalancer; i++) {
 
