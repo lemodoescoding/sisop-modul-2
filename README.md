@@ -149,7 +149,7 @@ void activityLog(const char *judul, const char *genre, const char *penulis) {
 
   pthread_mutex_lock(&mutexLog);
   FILE *log = fopen("recap.txt", "a");
-  fprintf(log, "[%2d-%2d-%4d %2d:%2d:%2d] %s: %s telah dipindahkan ke %s\n",
+  fprintf(log, "[%02d-%02d-%4d %02d:%02d:%02d] %s: %s telah dipindahkan ke %s\n",
           waktu->tm_mday, waktu->tm_mon + 1, waktu->tm_year + 1900,
           waktu->tm_hour, waktu->tm_min, waktu->tm_sec, penulis, judul, genre);
   fclose(log);
