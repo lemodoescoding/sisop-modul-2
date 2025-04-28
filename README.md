@@ -428,3 +428,103 @@ fungsi `strtok` untuk mendapatkan token-token string yang dipisahkan oleh spasi.
 saja tanpa ada karakter khusus. Pembuatan file .txt menggunakan bantuan file pointer dan `fopen` dengan mode `w` (write) untuk menuliskan karakter kedalam file .txt yang dibuat. Nama file .txt didapat dari
 string hasil konversi dari fungsi sebelumnya yang memfilter karakter khusus dan spasi. Untuk menuliskan baris pada file yang sudah dibuat, digunakan fungsi `fprintf` dan data-data yang sudah tercatat di `ManhwaStats`
 dituliskan kedalam file .txt
+
+- Kendala
+  Untuk saat ini belum ada kendala untuk mengerjakan soal A
+
+### Soal B - Seal the Scrolls
+
+```c
+void getOnlyCapital(char *ori, char *res) {
+  int ori_len = strlen((char *)ori);
+  char *temp = (char *)malloc(sizeof(char) * (ori_len));
+  strncpy(temp, ori, ori_len);
+  temp[ori_len] = '\0';
+
+  int j = 0;
+  for (int i = 0; temp[i] != '\0'; i++) {
+    if (isupper(ori[i])) {
+      res[j++] = temp[i];
+    }
+  }
+
+  res[j] = '\0';
+}
+
+void performZipOp(ManhwaStats *mh) {
+  createFolderSysCall("Archive");
+
+  char path[512] = {0}, txt_path[512] = {0};
+
+  int filzip_len = strlen(mh->title);
+
+  char *filtxt = (char *)malloc(sizeof(char) * (filzip_len + 1));
+  filtxt[0] = '\0';
+  convertTitleToFileName(mh->title, filtxt);
+  snprintf(txt_path, sizeof(txt_path), "./Manhwa/%s.txt", filtxt);
+
+  char *filzipn = (char *)malloc(sizeof(char) * (filzip_len + 1));
+  filzipn[0] = '\0';
+  getOnlyCapital(mh->title, filzipn);
+  snprintf(path, sizeof(path), "./Archive/%s.zip", filzipn);
+
+  int path_len = strlen(path);
+  int txt_path_len = strlen(txt_path);
+
+  printf("Begin zipping ...\n");
+
+  if (fork() == 0) {
+    printf("%s [%d] - %s [%d] %d\n", path, path_len, txt_path, txt_path_len,
+           filzip_len);
+    char *argv[] = {"zip", "-j", path, txt_path, NULL};
+    execv("/bin/zip", argv);
+  }
+
+  wait(NULL);
+
+  _exit(0);
+}
+
+void performZipTxt(ManhwaStats *mh) {
+  pid_t zip_pid[MH_COUNT];
+  for (int i = 0; i < MH_COUNT; i++) {
+    if (fork() == 0) {
+      performZipOp(&mh[i]);
+    }
+
+    wait(NULL);
+  }
+}
+
+int main() {
+  ManhwaStats mh[MH_COUNT] = {0};
+
+  perfromFetchDataManhwa(mh);
+
+  performZipTxt(mh);
+
+  for (int i = 0; i < MH_COUNT; i++) {
+    free(mh[i].title);
+    free(mh[i].genres);
+    free(mh[i].status);
+    free(mh[i].themes);
+    free(mh[i].authors);
+    free(mh[i].publish_date);
+    free(mh[i].title_english);
+  }
+
+  return 0;
+}
+```
+
+Pada Soal B, semua file .txt yang ada didalam folder `Manhwa/` diminta untuk di-zip-kan dan dimasukkan ke dalam folder baru `Archive/`.
+Ketentuan yang diberikan dalam pemberian nama file .zip adalah huruf kapital dari masing-masing nama file .txt yang ada di folder `Manhwa/`.
+Untuk mendapatkan karakter huruf besar saja, maka kami membuat fungsi utility `getOnlyCaptial` dengan dua parameter fungsi, original string serta
+string akhir setelah filter dengan memanfaatkan fungsi `isupper()` untuk menentukan apakah karakter di index ke-i string adalah huruf besar.
+
+Setelah nama untuk file .zip sudah diketahui, maka langkah selanjutnya adalah tinggal melakukan operasi zip-ping pada file-file .txt yang ada di folder
+dengan memanfaatkan `fork` serta `execv`. fork digunakan untuk menspawn child process disamping parent process dan execv digunakan untuk menjalankan
+command `zip` yang nantinya akan meng-zip file .txt sesuai dengan path yang disediakan saat memanggil program zip.
+
+- Kendala
+  Untuk saat ini belum ada kendala untuk mengerjakan soal B
