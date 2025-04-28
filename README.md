@@ -660,7 +660,149 @@ Karena gambar yang didownload akan diulang beberapa kali sesuai dengan bulan ril
 gambar secara langsung dan sesuai dengan banyak gambar yang harus didownload. Multi-threading diterapkan didalam fungsi `performDownloadImages` yang sebelumnya akan dibuat terlebih
 dahulu folder `Heroines`. Kemudian struktur `ImageThread` akan dibuat dan di isi dengan data-data yang relevan untuk pendownload-an gambar. Pembuatan thread dimulai
 dengan mendefinisikan variabel `hr_downloads[numdown]` dengan numdown adalah berapa banyak gambar yang harus didownload serta tipe data yang digunakan adalah `pthread_t`.
-Kemudian untuk membuat thread, digunakan fungsi `pthread_create()` dengan fungsi thread yang digunakan adalah `downloadImage`.
+Kemudian untuk membuat thread, digunakan fungsi `pthread_create()` dengan fungsi thread yang digunakan adalah `downloadImage`. Setelah thread-thread tersebut selesai melakukan tugas
+download gambar, satu-persatu thread akan dijoin ke process menggunakan `pthread_join()`.
+
+Karena di soal diinginkan untuk pendownload-an gambar dilakukan secara urut sesuai dengan list manhwa yang diberikan, maka digunakan juga teknik multi-processing yang didalam tiap-tiap
+fork adalah pendownload-an yang dilakukan secara multi-threading pada penjelasan sebelumnya. Untuk menghindari manhwa B lebih dulu menyelesaikan tugas pendownload-an nya dibanding manhwa A,
+maka di tiap-tiap fork (child process), sebelum melanjutkan pada child process selanjutnya, ditambahkan fungsi `wait(NULL)` sehingga eksekusi di main/parent process sementara diblock sampai
+child process selesai atau exit.
 
 - Kendala
   Untuk saat ini belum ada kendala untuk mengerjakan soal C
+
+#### Soal D - Zip. Save. Goodbye.
+
+```c
+void performZipImages(ManhwaStats *mh) {
+  createFolderSysCall("Archive");
+  createFolderSysCall("Archive/Images");
+
+  printf("Begin to zip images...\n");
+  for (int i = 0; i < MH_COUNT; i++) {
+    if (fork() == 0) {
+      char cwd[256] = {0}, path[512] = {0}, images_path[512] = {0};
+      if (getcwd(cwd, sizeof(cwd)) == NULL)
+        report_and_error("getcwd() error...");
+
+      int filzip_len = strlen(mh[i].title_english);
+
+      char *filtxt = malloc(sizeof(char) * (filzip_len + 1));
+      filtxt[0] = '\0';
+      convertTitleToFileName(mh[i].title_english, filtxt);
+
+      char *filzipn = malloc(sizeof(char) * (filzip_len + 1));
+      filzipn[0] = '\0';
+      getOnlyCapital(mh->title, filzipn);
+
+      snprintf(images_path, sizeof(images_path), "%s/Heroines/%s/", cwd,
+               mh_heroines[i]);
+      snprintf(path, sizeof(path), "%s/Archive/Images/%s_%s.zip", cwd, filzipn,
+               mh_heroines[i]);
+
+      if (fork() == 0) {
+        char *argv[] = {"zip", "-r", path, images_path, NULL};
+        execv("/bin/zip", argv);
+      }
+
+      wait(NULL);
+
+      exit(0);
+    }
+
+    wait(NULL);
+  }
+
+  wait(NULL);
+}
+
+int compareDirName(const void *a, const void *b) {
+  return strcmp(*(char **)a, *(char **)b);
+}
+
+void listFolders(char *dirname, char ***folders_out, int *count) {
+  char cwd[512] = {0};
+  if (getcwd(cwd, sizeof(cwd)) == NULL)
+    report_and_error("getcwd() error...");
+  DIR *dir = opendir(dirname);
+  if (!dir)
+    report_and_error("opendir() fail to open dirname...");
+
+  char **folders = (char **)malloc(sizeof(char *));
+  struct dirent *entry;
+
+  int cnt = 1;
+  while ((entry = readdir(dir)) != NULL) {
+    folders = (char **)realloc(folders, sizeof(char *) * (cnt));
+
+    if (strcmp(".", entry->d_name) == 0 || strcmp("..", entry->d_name) == 0)
+      continue;
+
+    char fullpath[512];
+    snprintf(fullpath, sizeof(fullpath), "%s/%s/%s", cwd, dirname,
+             entry->d_name);
+
+    struct stat st;
+    if (stat(fullpath, &st) == 0 && S_ISDIR(st.st_mode)) {
+      folders[cnt - 1] = strdup(fullpath);
+      ++cnt;
+    }
+  }
+
+  closedir(dir);
+  qsort(folders, cnt - 1, sizeof(char *), compareDirName);
+
+  *count = cnt - 1;
+  *folders_out = folders;
+}
+
+void performDeleteImagesSort() {
+  char *dirname = "Heroines";
+  char **folders;
+  int count;
+
+  listFolders(dirname, &folders, &count);
+  /* printf("Begin Deleting... - %d\n", count); */
+
+  for (int i = 0; i < count; i++) {
+    if (fork() == 0) {
+      /* printf("Deleteting folder on path: %s...\n", folders[i]); */
+      char *argv[] = {"rm", "-rf", folders[i], NULL};
+      execv("/bin/rm", argv);
+    }
+
+    wait(NULL);
+  }
+}
+
+int main() {
+  ManhwaStats mh[MH_COUNT] = {0};
+
+  perfromFetchDataManhwa(mh);
+
+  performZipTxt(mh);
+
+  performDownloadImages(mh);
+
+  performZipImages(mh);
+
+  performDeleteImagesSort();
+
+  for (int i = 0; i < MH_COUNT; i++) {
+    free(mh[i].title);
+    free(mh[i].genres);
+    free(mh[i].status);
+    free(mh[i].themes);
+    free(mh[i].authors);
+    free(mh[i].publish_date);
+    free(mh[i].title_english);
+  }
+
+  return 0;
+}
+```
+
+Pada Soal D,
+
+- Kendala
+  Untuk saat ini belum ada kendala untuk mengerjakan soal D
