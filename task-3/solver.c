@@ -549,7 +549,7 @@ void listFolders(char *dirname, char ***folders_out, int *count) {
   }
 
   closedir(dir);
-  qsort(folders, cnt, sizeof(char *), compareDirName);
+  qsort(folders, cnt - 1, sizeof(char *), compareDirName);
 
   *count = cnt - 1;
   *folders_out = folders;
@@ -629,10 +629,10 @@ int main() {
 
   performZipTxt(mh);
 
-  /* performDownloadImages(mh); */
+  performDownloadImages(mh);
 
-  /* performZipImages(mh); */
-  /**/
+  performZipImages(mh);
+
   performDeleteImagesSort();
 
   for (int i = 0; i < MH_COUNT; i++) {
