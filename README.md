@@ -412,6 +412,8 @@ int main() {
 }
 ```
 
+##### Penjelasan
+
 Proses fetch data manhwa menggunakan Jikan API `https://api.jikan.moe/v4/manga/{id}` dengan parameter yang harus diberikan adalah id dari manga/manhwa yang ingin dicari.
 Jikan API akan mengembalikan sebuah responnse HTTP berupa data JSON. Proses fetch data menggunakan bantuan fungsi `performCURLManhwaData` yang menggunakan library curl
 untuk melakukan proses download data JSON, kemudian terdapat fungsi `crl_write_callback` yang digunakan sebagai salah satu parameter dalam inisialisasi curl options yakni di bagian
@@ -435,8 +437,9 @@ saja tanpa ada karakter khusus. Pembuatan file .txt menggunakan bantuan file poi
 string hasil konversi dari fungsi sebelumnya yang memfilter karakter khusus dan spasi. Untuk menuliskan baris pada file yang sudah dibuat, digunakan fungsi `fprintf` dan data-data yang sudah tercatat di `ManhwaStats`
 dituliskan kedalam file .txt
 
-- Kendala
-  Untuk saat ini belum ada kendala untuk mengerjakan soal A
+##### Kendala
+
+Untuk saat ini belum ada kendala untuk mengerjakan soal A
 
 ### Soal B - Seal the Scrolls
 
@@ -523,6 +526,8 @@ int main() {
 }
 ```
 
+##### Penjelasan
+
 Pada Soal B, semua file .txt yang ada didalam folder `Manhwa/` diminta untuk di-zip-kan dan dimasukkan ke dalam folder baru `Archive/`.
 Ketentuan yang diberikan dalam pemberian nama file .zip adalah huruf kapital dari masing-masing nama file .txt yang ada di folder `Manhwa/`.
 Untuk mendapatkan karakter huruf besar saja, maka kami membuat fungsi utility `getOnlyCaptial` dengan dua parameter fungsi, original string serta
@@ -532,8 +537,9 @@ Setelah nama untuk file .zip sudah diketahui, maka langkah selanjutnya adalah ti
 dengan memanfaatkan `fork` serta `execv`. fork digunakan untuk menspawn child process disamping parent process dan execv digunakan untuk menjalankan
 command `zip` yang nantinya akan meng-zip file .txt sesuai dengan path yang disediakan saat memanggil program zip.
 
-- Kendala
-  Untuk saat ini belum ada kendala untuk mengerjakan soal B
+##### Kendala
+
+Untuk saat ini belum ada kendala untuk mengerjakan soal B
 
 #### Soal C - Making the Waifu Gallery
 
@@ -643,6 +649,8 @@ int main() {
 }
 ```
 
+##### Penjelasan
+
 Pada Soal C, terdapat tugas untuk mendownload sebuah image dari internet yang dimana gambar yang akan didownload berisi karakter FMC atau heroine
 dari masing-masing manhwa. Kemudian gambar tersebut didownload sebanyak di bulan berapa manhwa tersebut dirilis, sebagai contoh jika manhwa A dirilis
 pada bulan Februari (bulan 2) maka gambar akan didownload sebanyak 2 kali. Untuk pendownload-an gambar serta link yang digunakan, kami menggunakan link URL gambar cover yang tersedia saat mengambil data JSON dari Jikan API. URL tersebut
@@ -666,10 +674,12 @@ download gambar, satu-persatu thread akan dijoin ke process menggunakan `pthread
 Karena di soal diinginkan untuk pendownload-an gambar dilakukan secara urut sesuai dengan list manhwa yang diberikan, maka digunakan juga teknik multi-processing yang didalam tiap-tiap
 fork adalah pendownload-an yang dilakukan secara multi-threading pada penjelasan sebelumnya. Untuk menghindari manhwa B lebih dulu menyelesaikan tugas pendownload-an nya dibanding manhwa A,
 maka di tiap-tiap fork (child process), sebelum melanjutkan pada child process selanjutnya, ditambahkan fungsi `wait(NULL)` sehingga eksekusi di main/parent process sementara diblock sampai
-child process selesai atau exit.
+child process selesai atau exit. Pendownload-an per manhwa akan diletakkan di masing-masing folder baru didalam `Heroines/` dengan nama folder adalah nama belakang / panggilan dari masing-masing
+karakter Heroine dari masing-masing Manhwa.
 
-- Kendala
-  Untuk saat ini belum ada kendala untuk mengerjakan soal C
+##### Kendala
+
+Untuk saat ini belum ada kendala untuk mengerjakan soal C
 
 #### Soal D - Zip. Save. Goodbye.
 
@@ -802,7 +812,28 @@ int main() {
 }
 ```
 
-Pada Soal D,
+##### Penjelasan
 
-- Kendala
-  Untuk saat ini belum ada kendala untuk mengerjakan soal D
+Pada Soal D, diminta untuk pengarsipan gambar-gambar yang sudah didownload di folder `Heroines/` yang sudah dikelompokkan berdasarkan nama masing-masing Heroine Manhwa.
+Hasil pengarsipan gambar-gambar tersebut akan diletakkan pada folder `Archive/Images` dengan format nama file .zip adalah `[HURUFKAPITALNAMAMANHWA]_[namaheroine].zip`.
+Untuk mendapatkan huruf kapital nama manhwa, digunakan fungsi yang sudah ada sebelumnya yakni `getOnlyCapital` dan `convertTitleToFileName`. Karena terdapat 4 folder yang akan
+diarsipkan, maka teknik yang digunakan disini adalah multi-processing dengan masing-masing child process yang dispawn akan menjalankan `zip` dengan menggunakan `execv`. Proses-proses diatas dibungkus
+kedalam fungsi `performZipImages` untuk mempermudah pemanggilan.
+
+Kemudian setelah dilakukan peng-arsip-an folder-folder file gambar, diminta juga untuk melakukan penghapusan file-file gambar yang sudah didownload
+di folder `Heroines/` satu persatu namun urut abjad. Approach yang saya gunakan disini adalah melakukan listing direktori-direktori yang ada didalam folder `Heroines/` dan mengurutkan
+nama folder secara alfanumerik dan secara ascending menggunakan bantuan fungsi `opendir`, `readdir`, dan `qsort`. Untuk menentukan yang di-list oleh fungsi-fungsi tersebut, diperlukan
+kondisi dan pengecakan apakah yang dilist adalah sebuah direktori atau bukan dengan memanfaatkan fungsi `S_ISDIR` serta struktur `dirent` yang menampung informasi dari path yang diperoleh
+dan melakukan pemanggilan fungsi `stat()` untuk memverifikasi apakah path tersebut valid atau tidak. Kemudian, nama-nama direktori yang sudah terfilter dimasukkan ke dalam sebuah variabel
+bertipe `char` dan berbentuk 2 dimensi `char **` yang dialokasikan secara dinamis menggunakan `malloc` dan `realloc`. Nama-nama direktori yang sudah disimpan kemudian diurutkan berdasarkan
+alfanumerik dan secara ascending dengan bantuan fungsi `qsort` dan fungsi tambahan `compareDirname` untuk menentukan prioritas urutan nama direktori dengan memanfaatkan fungsi lain `strcmp`. Proses-proses diatas
+dibungkus kedalam satu fungsi bernama `listFolders` yang tujuan-nya tidak lain hanya untuk meng-list folder apa saja yang ada didalam direktori `Heroines/`.
+
+Setelah didapat nama-nama folder yang sudah terurut secara alfanumerik dan secara ascending, maka nama-nama direktori yang sudah dilist oleh fungsi sebelumnya ditampung lagi kedalam
+variabel lain didalam fungsi `performDeleteImageSort()` untuk dijalankan penghapusan direktori urut berdasarkan abjad seperti yang diminta pada Soal D. Untuk penghapusan digunakan child process
+yang didalamnya terdapat sebuah `execv` yang menjalankan perintah `rm` serta flag `-rf` (rekursif dan force) untuk menghapus direktori yang dimaksud beserta seluruh isi/konten dari direktori tersebut.
+Kemudian setiap spawning child process harus menunggu terlebih dahulu child process sebelumnya untuk menyelesaikan tugasnya.
+
+##### Kendala
+
+Untuk saat ini belum ada kendala untuk mengerjakan soal D
