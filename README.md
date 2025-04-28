@@ -25,6 +25,12 @@ Tulis laporan resmi di sini!
 
 #### Laporan Task 3 - Cella's Manhwa
 
+Compile dengan
+
+```bash
+gcc solver.c -o solver -pthread -ljson-c -lcurl
+```
+
 ```c
 void createFolderSysCall(const char *folderName) {
   char cwd[256] = {0}, path[512] = {0};
@@ -528,3 +534,133 @@ command `zip` yang nantinya akan meng-zip file .txt sesuai dengan path yang dise
 
 - Kendala
   Untuk saat ini belum ada kendala untuk mengerjakan soal B
+
+#### Soal C - Making the Waifu Gallery
+
+```c
+typedef struct {
+  char *url_image, *dwn_path;
+} ImageThread;
+
+size_t writeToJpg(void *contents, size_t size, size_t nmemb, FILE *userp) {
+  size_t written = fwrite(contents, size, nmemb, userp);
+  return written;
+}
+
+void *downloadImage(void *arg) {
+  ImageThread *imgt;
+  imgt = (ImageThread *)arg;
+
+  CURL *curl;
+  CURLcode res;
+  FILE *fp;
+
+  curl = curl_easy_init();
+  if (!curl)
+    report_and_error("curl_easy_init error...");
+
+  fp = fopen(imgt->dwn_path, "wb");
+  if (!fp)
+    report_and_error("fopen failed...");
+  curl_easy_setopt(curl, CURLOPT_URL, imgt->url_image);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeToJpg);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+
+  res = curl_easy_perform(curl);
+
+  curl_easy_cleanup(curl);
+  fclose(fp);
+
+  free(imgt->dwn_path);
+  free(imgt->url_image);
+  free(imgt);
+
+  return NULL;
+}
+
+void performDownloadImages(ManhwaStats *mh) {
+  createFolderSysCall("Heroines");
+
+  for (int i = 0; i < MH_COUNT; i++) {
+    char path[512] = {0};
+
+    snprintf(path, sizeof(path), "Heroines/%s", mh_heroines[i]);
+    createFolderSysCall(path);
+
+    int numdwn = mh[i].mon_of_rel;
+    if (fork() == 0) {
+
+      pthread_t hr_downloads[numdwn];
+      for (int j = 0; j < numdwn; j++) {
+
+        char dwn_path[512], cwd[256];
+        if (getcwd(cwd, sizeof(cwd)) == NULL)
+          report_and_error("getcwd() error...");
+
+        snprintf(dwn_path, sizeof(dwn_path), "%s/Heroines/%s/%s_%d.jpg", cwd,
+                 mh_heroines[i], mh_heroines[i], j + 1);
+
+        ImageThread *imgt = malloc(sizeof(ImageThread));
+
+        imgt->url_image = strdup((&mh[i])->url_image);
+        imgt->dwn_path = strdup(dwn_path);
+
+        printf("Downloading images %d-%d: %s...\n", i + 1, j + 1,
+               mh[i].title_english);
+        pthread_create(&hr_downloads[j], NULL, downloadImage, (void *)imgt);
+      }
+
+      for (int j = 0; j < numdwn; j++) {
+        pthread_join(hr_downloads[j], NULL);
+      }
+
+      exit(0);
+    }
+    wait(NULL);
+  }
+}
+
+int main() {
+  ManhwaStats mh[MH_COUNT] = {0};
+
+  perfromFetchDataManhwa(mh);
+
+  performZipTxt(mh);
+
+  performDownloadImages(mh);
+
+  for (int i = 0; i < MH_COUNT; i++) {
+    free(mh[i].title);
+    free(mh[i].genres);
+    free(mh[i].status);
+    free(mh[i].themes);
+    free(mh[i].authors);
+    free(mh[i].publish_date);
+    free(mh[i].title_english);
+  }
+
+  return 0;
+}
+```
+
+Pada Soal C, terdapat tugas untuk mendownload sebuah image dari internet yang dimana gambar yang akan didownload berisi karakter FMC atau heroine
+dari masing-masing manhwa. Kemudian gambar tersebut didownload sebanyak di bulan berapa manhwa tersebut dirilis, sebagai contoh jika manhwa A dirilis
+pada bulan Februari (bulan 2) maka gambar akan didownload sebanyak 2 kali. Untuk pendownload-an gambar serta link yang digunakan, kami menggunakan link URL gambar cover yang tersedia saat mengambil data JSON dari Jikan API. URL tersebut
+kemudian juga masuk kedalam struktur data `ManhwaStats` untuk mempermudah pengakses-an data. Kemudian untuk seberapa banyak gambar harus didownload, kami juga
+menggunakan data yang ada dalam response JSON dari Jikan API di bagian `published` dan juga menambahkan data bulan ke dalam struktur `ManhwaStats` juga.
+
+Untuk pendownload-an gambar secara individual, teknik yang digunakan mirip seperti yang dilakukan di soal-A yakni menggunakan libcurl namun dengan perbedaan terletak
+pada `CURLOPT_WRITEFUNCTION`. Fungsi untuk write function disini menggunakan fungsi bantuan `writeToJpg` yang menuliskan binary data ke file gambar yang dibuat
+menggunakan `fopen` dan `fwrite` dengan mode file `wb` (write binary). Untuk nama gambar yang akan didownload, di fungsi `downloadImage` terdapat satu buah parameter yang menjadi nama dari file gambar
+yang sudah didownload. Fungsi `downloadImage` ini nantinya akan di-run dengan metode multi-threading sehingga argumen dari fungsi ini harus menggunakan sebuah struktur.
+Struktur yang digunakan dinamai `ImageThread` yang berisi `url_image` serta `download_path`. url_image digunakan untuk memberi tahu libcurl untuk mem-fetch data
+dari url yang diberikan, kemudian dwn_path digunakan untuk meng-set destination path file yang sudah selesai didownload.
+
+Karena gambar yang didownload akan diulang beberapa kali sesuai dengan bulan rilis manhwa tersebut, maka disini kami menerapkan multi-threading untuk melakukan download
+gambar secara langsung dan sesuai dengan banyak gambar yang harus didownload. Multi-threading diterapkan didalam fungsi `performDownloadImages` yang sebelumnya akan dibuat terlebih
+dahulu folder `Heroines`. Kemudian struktur `ImageThread` akan dibuat dan di isi dengan data-data yang relevan untuk pendownload-an gambar. Pembuatan thread dimulai
+dengan mendefinisikan variabel `hr_downloads[numdown]` dengan numdown adalah berapa banyak gambar yang harus didownload serta tipe data yang digunakan adalah `pthread_t`.
+Kemudian untuk membuat thread, digunakan fungsi `pthread_create()` dengan fungsi thread yang digunakan adalah `downloadImage`.
+
+- Kendala
+  Untuk saat ini belum ada kendala untuk mengerjakan soal C
