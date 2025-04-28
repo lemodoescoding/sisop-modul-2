@@ -35,15 +35,12 @@ void *sortirfilm(void *argv) {
 
   struct dirent *entri;
   char folderbaru[100];
-  char genreS[100];
+  char genreS[20];
   strcpy(genreS, genre);
   genreS[0] = toupper(genreS[0]);
-  sprintf(folderbaru, "film/Film%s", genreS);
+  snprintf(folderbaru, sizeof(folderbaru), "film/Film%s", genreS);
 
-  if (fork() == 0) {
-    char *argv[] = {"mkdir", "-p", folderbaru, NULL};
-    execv("/bin/mkdir", argv);
-  }
+  mkdir(folderbaru, 0777); 
 
   while ((entri = readdir(folder)) != NULL) {
     int len = strlen(entri->d_name);
