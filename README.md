@@ -166,15 +166,12 @@ void *sortirfilm(void *argv) {
 
   struct dirent *entri;
   char folderbaru[100];
-  char genreS[100];
+  char genreS[20];
   strcpy(genreS, genre);
   genreS[0] = toupper(genreS[0]);
-  sprintf(folderbaru, "film/Film%s", genreS);
+  snprintf(folderbaru, sizeof(folderbaru), "film/Film%s", genreS);
 
-  if (fork() == 0) {
-    char *argv[] = {"mkdir", "-p", folderbaru, NULL};
-    execv("/bin/mkdir", argv);
-  }
+  mkdir(folderbaru, 0777); 
 
   while ((entri = readdir(folder)) != NULL) {
     int len = strlen(entri->d_name);
@@ -263,7 +260,8 @@ Deklarasikan ```total_file``` untuk menyimpan jumlah file, lalu inisialisasi mut
 Lalu, ```struct tm* waktu = localtime(&now)``` untuk mengambil informasi terkait waktu sekarang. Kemudian, file ```recap.txt``` dibuka dan dituliskan log dengan format tertentu ke dalamnya. Lalu, file ditutup dan mutex pun diunlock kembali.
 
 Pada kode, ```void* sortirfilm``` adalah fungsi untuk menyortir film untuk dimasukkan ke dalam folder sesuai genrenya. 
-Buka folder film, lalu buat folderbaru dengan format ```film/FilmGenre``` dengan Genrenya adalah horror, animasi, dan drama. Lalu, buat fork dan jalankan execv yang berisi perintah untuk membuat folderbaru tersebut jika belum ada. 
+Buka folder film, lalu buat folder baru dengan format ```film/FilmGenre``` dengan Genrenya adalah horror, animasi, dan drama. Lalu, buat folder baru dengan mkdir.
+
 Kemudian, semua file dalam folder lama akan dibaca dan disortir. sscanf akan membaca dan menyimpan string genre dalam file film. Kemudian, akan dibandingkan dengan genre yang sudah ada, jika sama maka sscanf akan mengambil nomor film, dan menentukan penulis log berdasarkan nomor film. 
 Kemudian, snprintf pertama akan mengambil lokasi file awal sebelum dipindahkan dan snprintf kedua akan mengambil lokasi setelah file dipindahkan. Kemudian, direname untuk memindahkan lokasi lama ke lokasi baru. 
 
