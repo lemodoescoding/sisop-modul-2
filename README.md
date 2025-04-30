@@ -163,6 +163,9 @@ int main() {
 }
 ```
 
+![Jawaban Soal A](/assets/task-4/soal-A.jpg)
+![Jawaban Soal A](/assets/task-4/soal-AB.jpg)
+
 ##### Penjelasan
 
 Pada Soal A, `client.c` menerima input-an berupa string dari user saat dijalankan dengan format `MESSAGE;MESSAGE_COUNT` dimana MESSAGE adalah pesan yang hendak dikirimkan dan MESSAGE_COUNT adalah berapa kali
@@ -403,6 +406,8 @@ int main(int argc, char *argv[]) {
 }
 ```
 
+![Jawaban Soal B](/assets/task-4/soal-AB.jpg)
+
 ##### Penjelasan
 
 Pada Soal B, `loadbalancer.c` akan menerima pesan yang dikirimkan melalui IPC shared memory yang dikirim oleh `client.c` yang juga menggunakan shared memory yang sama.
@@ -567,6 +572,8 @@ int main(int argc, char *argv[]) {
 }
 ```
 
+![Jawaban Soal C](/assets/task-4/soal-C.jpg)
+
 ##### Penjelasan
 
 Pada Soal C, Worker dibuat menggunakan thread dengan memanfaatkan fungsi-fungsi utility dari `<pthread.h>`. Pembuatan banyaknya thread tergantung pada argumen ketika `worker.c` dijalankan
@@ -638,6 +645,8 @@ int main(int argc, char *argv[]) {
   ...
 }
 ```
+
+![Jawaban Soal D](/assets/task-4/soal-D.jpg)
 
 ##### Penjelasan
 
