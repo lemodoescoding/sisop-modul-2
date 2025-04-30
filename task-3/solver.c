@@ -32,6 +32,8 @@ const char *mh_heroines[4] = {"Lia", "Tia", "Adelia",
                               "Ophelia"}; // based on the API an some research,
                                           // and sorted by mh_urls
 
+pthread_mutex_t download_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 typedef struct Memory {
   char *_mem;
   size_t _size;
@@ -435,41 +437,39 @@ void performDownloadImages(ManhwaStats *mh) {
   createFolderSysCall("Heroines");
 
   for (int i = 0; i < MH_COUNT; i++) {
+    pthread_mutex_lock(&download_mutex);
     char path[512] = {0};
 
     snprintf(path, sizeof(path), "Heroines/%s", mh_heroines[i]);
     createFolderSysCall(path);
 
     int numdwn = mh[i].mon_of_rel;
-    if (fork() == 0) {
 
-      pthread_t hr_downloads[numdwn];
-      for (int j = 0; j < numdwn; j++) {
+    pthread_t hr_downloads[numdwn];
+    for (int j = 0; j < numdwn; j++) {
 
-        char dwn_path[512], cwd[256];
-        if (getcwd(cwd, sizeof(cwd)) == NULL)
-          report_and_error("getcwd() error...");
+      char dwn_path[512], cwd[256];
+      if (getcwd(cwd, sizeof(cwd)) == NULL)
+        report_and_error("getcwd() error...");
 
-        snprintf(dwn_path, sizeof(dwn_path), "%s/Heroines/%s/%s_%d.jpg", cwd,
-                 mh_heroines[i], mh_heroines[i], j + 1);
+      snprintf(dwn_path, sizeof(dwn_path), "%s/Heroines/%s/%s_%d.jpg", cwd,
+               mh_heroines[i], mh_heroines[i], j + 1);
 
-        ImageThread *imgt = malloc(sizeof(ImageThread));
+      ImageThread *imgt = malloc(sizeof(ImageThread));
 
-        imgt->url_image = strdup((&mh[i])->url_image);
-        imgt->dwn_path = strdup(dwn_path);
+      imgt->url_image = strdup((&mh[i])->url_image);
+      imgt->dwn_path = strdup(dwn_path);
 
-        printf("Downloading images %d-%d: %s...\n", i + 1, j + 1,
-               mh[i].title_english);
-        pthread_create(&hr_downloads[j], NULL, downloadImage, (void *)imgt);
-      }
+      printf("Downloading images %d-%d: %s...\n", i + 1, j + 1,
+             mh[i].title_english);
+      pthread_create(&hr_downloads[j], NULL, downloadImage, (void *)imgt);
 
-      for (int j = 0; j < numdwn; j++) {
-        pthread_join(hr_downloads[j], NULL);
-      }
-
-      exit(0);
+      pthread_mutex_unlock(&download_mutex);
     }
-    wait(NULL);
+
+    for (int j = 0; j < numdwn; j++) {
+      pthread_join(hr_downloads[j], NULL);
+    }
   }
 }
 
@@ -623,16 +623,17 @@ void perfromFetchDataManhwa(ManhwaStats *mh) {
 }
 
 int main() {
+  if (pthread_mutex_init(&download_mutex, NULL) != 0)
+    report_and_error("pthread_mutex_init...");
+
   ManhwaStats mh[MH_COUNT] = {0};
 
   perfromFetchDataManhwa(mh);
 
   performZipTxt(mh);
-
   performDownloadImages(mh);
 
   performZipImages(mh);
-
   performDeleteImagesSort();
 
   for (int i = 0; i < MH_COUNT; i++) {
@@ -645,5 +646,6 @@ int main() {
     free(mh[i].title_english);
   }
 
+  pthread_mutex_destroy(&download_mutex);
   return 0;
 }
