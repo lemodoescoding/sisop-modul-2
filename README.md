@@ -23,8 +23,6 @@
 
 Tulis laporan resmi di sini!
 
-_Write your lab work report here!_
-
 #### Laporan task 1 - Trabowo & Peddy Movie Night
 
 #### Soal A - Ekstraksi File ZIP
@@ -43,11 +41,11 @@ int main() {
         return 1;
     } else if (pid == 0) {
         char* downloadargv[6] = {"curl", "-L", "-o", "film.zip", "https://drive.google.com/uc?export=download&id=1nP5kjCi9ReDk5ILgnM7UCnrQwFH67Z9B", NULL};
-        execv("/usr/bin/curl", downloadargv);
+        execv("/usr/bin/curl", downloadargv); 
         perror("Gagal mendownload zip");
-        exit(1);
+        exit(1); 
     }
-
+    
     wait(NULL);
 
     pid = fork();
@@ -56,29 +54,26 @@ int main() {
         exit(1);
     } else if (pid == 0) {
         char* unzipargv[3] = {"unzip", "film.zip", NULL};
-        execv("/usr/bin/unzip", unzipargv);
+        execv("/usr/bin/unzip", unzipargv);  
         perror("Gagal meng-unzip");
-        exit(1);
+        exit(1); 
     }
 
     wait(NULL);
     return 0;
 }
 ```
-
-![Hasil curl & unzip](/assets/task-1/task1-soalA.png 'SS 1A')
-![Hasil curl & unzip](/assets/task-1/task1-soalA2.png 'SS 1A')
+![Hasil curl & unzip](/assets2/taskpertama/task1-soalA.png "SS 1A")
+![Hasil curl & unzip](/assets2/taskpertama/task1-soalA2.png "SS 1A")
 
 ##### Penjelasan
+Dalam soal ini, menggunakan 2 fork. Fork pertama untuk mendownload ```film.zip``` yang terdapat pada link gdrive. Pada fork, jika pid < 0 maka fork gagal membuat proses baru. Jika pid == 0 maka fork berhasil membuat proses child. proses child akan menjalankan
+perintah download menggunakan ```downloadargv[6]``` yang berisi perintah ```curl -L -o film.zip https://drive.google.com/uc?export=download&id=1nP5kjCi9ReDk5ILgnM7UCnrQwFH67Z9B```. ```curl``` adalah command untuk mendownload data dari internet. ```-L``` artinya menyuruh ```curl``` mengikuti redirect kalau link diarahkan. ```-o film.zip``` untuk
+menyimpan hasil download ke file lokal bernama ```film.zip```. Lalu execv digunakan untuk mengeksekusi argumen yang diberikan. Jika execv berhasil dijalankan, maka program apapun yang tertulis setelahnya tidak akan dijalankan. Jika tidak berhasil, maka ```perror``` akan dijalankan dan mengeluarkan pesan error serta program akan exit dengan status code 1. 
 
-Dalam soal ini, menggunakan 2 fork. Fork pertama untuk mendownload `film.zip` yang terdapat pada link gdrive. Pada fork, jika pid < 0 maka fork gagal membuat proses baru. Jika pid == 0 maka fork berhasil membuat proses child. proses child akan menjalankan
-perintah download menggunakan `downloadargv[6]` yang berisi perintah `curl -L -o film.zip https://drive.google.com/uc?export=download&id=1nP5kjCi9ReDk5ILgnM7UCnrQwFH67Z9B`. `curl` adalah command untuk mendownload data dari internet. `-L` artinya menyuruh `curl` mengikuti redirect kalau link diarahkan. `-o film.zip` untuk
-menyimpan hasil download ke file lokal bernama `film.zip`. Lalu execv digunakan untuk mengeksekusi argumen yang diberikan. Jika execv berhasil dijalankan, maka program apapun yang tertulis setelahnya tidak akan dijalankan. Jika tidak berhasil, maka `perror` akan dijalankan dan mengeluarkan pesan error serta program akan exit dengan status code 1.
-
-Pada kode, `wait(NULL)` digunakan untuk menunggu proses child hingga selesai. `NULL` artinya tidak memedulikan exit status dari proses child, hanya tunggu sampai selesai mendownload. Kemudian, fork kedua digunakan untuk mengunzip file `film.zip`.
+Pada kode, ```wait(NULL)``` digunakan untuk menunggu proses child hingga selesai. ```NULL``` artinya tidak memedulikan exit status dari proses child, hanya tunggu sampai selesai mendownload. Kemudian, fork kedua digunakan untuk mengunzip file ```film.zip```.
 
 ###### Kendala
-
 Awalnya, saya tidak tahu kalau soalnya juga bermaksud untuk membuat program untuk mendownload film.zip dari link yang diberikan.
 
 #### Soal B - Pemilihan Film Secara Acak
@@ -118,21 +113,20 @@ int main(){
 }
 ```
 
-![Hasil pemilihan film](/assets/task-1/task1-soalB.png 'SS 1B')
+![Hasil pemilihan film](/assets2/taskpertama/task1-soalB.png "SS 1B")
+
 
 ##### Penjelasan
+Pada kode, ```DIR *folder=opendir("film")``` digunakan untuk membuka folder film dan ```*folder``` adalah pointer ke direktori filenya. 
+Pada ```struct dirent *entri```, ```*entri``` adalah pointer ke struct dirent yang merupakan struct yang disediakan oleh Linux dan didefinisikan dalam library ```dirent.h```.
+Lalu, ```listfilm[50]``` untuk menyimpan judul-judul film nantinya (terdapat 50 film). ```count``` untuk menghitung jumlah file yang ditemukan.
 
-Pada kode, `DIR *folder=opendir("film")` digunakan untuk membuka folder film dan `*folder` adalah pointer ke direktori filenya.
-Pada `struct dirent *entri`, `*entri` adalah pointer ke struct dirent yang merupakan struct yang disediakan oleh Linux dan didefinisikan dalam library `dirent.h`.
-Lalu, `listfilm[50]` untuk menyimpan judul-judul film nantinya (terdapat 50 film). `count` untuk menghitung jumlah file yang ditemukan.
-
-Menggunakan loop `while((entri=readdir(folder))!=NULL)` untuk membaca setiap entri dalam folder hingga akhir.
-Lalu, jika filenya berakhiran dengan ekstensi `.jpg` maka akan masuk ke dalam array listfilm dan count pun bertambah. `closedir(folder)` untuk menutup folder.
-Lalu, `srand(time(NULL))` akan digunakan untuk mengenerate angka random yang berbeda-beda setiap kali program dijalankan. ` int index=rand()%count` akan menghasilkan angka random dari 0 hingga count-1.
-Lalu, printf akan mencetak judul film yang berbeda setiap kali program dijalankan. `free(listfilm[i])` untuk membebaskan memori.
+Menggunakan loop ```while((entri=readdir(folder))!=NULL)``` untuk membaca setiap entri dalam folder hingga akhir.
+Lalu, jika filenya berakhiran dengan ekstensi ```.jpg``` maka akan masuk ke dalam array listfilm dan count pun bertambah. ```closedir(folder)``` untuk menutup folder.
+Lalu, ```srand(time(NULL))``` akan digunakan untuk mengenerate angka random yang berbeda-beda setiap kali program dijalankan. ``` int index=rand()%count``` akan menghasilkan angka random dari 0 hingga count-1.
+Lalu, printf akan mencetak judul film yang berbeda setiap kali program dijalankan. ```free(listfilm[i])``` untuk membebaskan memori.
 
 ###### Kendala
-
 Tidak ada.
 
 #### Soal C - Memilah Film Berdasarkan Genre
@@ -164,7 +158,7 @@ typedef struct {
 void createFolderMk(const char *dirname) {
   char path[256];
   snprintf(path, sizeof(path), "film/%s", dirname);
-  mkdir(path, 0755);
+  mkdir(path, 0755); 
 }
 
 
@@ -405,20 +399,18 @@ int main() {
 }
 ```
 
-![Hasil pindah folder](/assets/task-1/task1-soalC.png 'SS 1C')
-![Hasil recap.txt](/assets/task-1/task1-soalC2.png 'SS 1C')
-![Hasil total.txt](/assets/task-1/task1-soalC3.png 'SS 1C')
+![Hasil pindah folder](/assets2/taskpertama/task1-soalC.png "SS 1C")
+![Hasil recap.txt](/assets2/taskpertama/task1-soalC2.png "SS 1C")
+![Hasil total.txt](/assets2/taskpertama/task1-soalC3.png "SS 1C")
 
 ##### Penjelasan
+Pertama, membuat mutex untuk digunakan nanti, buat variabel global, dan juga struct ```ThreadArgs```. void ```createFolderMk``` untuk membuat direktori baru, yaitu FilmAnimasi, FilmHorror, dan FilmDrama. Kemudian, void ```writeActivityLog``` untuk membuat log ```recap.txt```, menggunakan mutex sehingga hanya 1 thread dalam satu waktu yang bisa menulis ke ```recap.txt```, jika tidak menggunakan mutex bisa terjadi race condition. Lalu, menggunakan ```usleep(200)``` untuk memberi jeda thread bekerja agar tidak terjadi race condition.
 
-Pertama, membuat mutex untuk digunakan nanti, buat variabel global, dan juga struct `ThreadArgs`. void `createFolderMk` untuk membuat direktori baru, yaitu FilmAnimasi, FilmHorror, dan FilmDrama. Kemudian, void `writeActivityLog` untuk membuat log `recap.txt`, menggunakan mutex sehingga hanya 1 thread dalam satu waktu yang bisa menulis ke `recap.txt`, jika tidak menggunakan mutex bisa terjadi race condition. Lalu, menggunakan `usleep(200)` untuk memberi jeda thread bekerja agar tidak terjadi race condition.
+Lalu, fungsi int ```compareFileName``` digunakan untuk membandingkan file berdasarkan nomor di awal file. Lalu, pada fungsi void ```listFiles``` akan membaca semua entri dalam folder film, menyimpan nama file dan path, dan menggunakan qsort untuk mengurutan file berdasarkan nomor awalnya. Lalu, pada fungsi void ```*moveFilesThread``` akan dijalankan oleh masing-masing thread, yaitu trabowo dan peddy. Lalu, akan dicek genre berdasarkan nama filenya, kemudian menentukan tujuan foldernya dan menjalankan fungsi ```writeActivityLog```. Tidak lupa untuk membebaskan memori dengan free.
 
-Lalu, fungsi int `compareFileName` digunakan untuk membandingkan file berdasarkan nomor di awal file. Lalu, pada fungsi void `listFiles` akan membaca semua entri dalam folder film, menyimpan nama file dan path, dan menggunakan qsort untuk mengurutan file berdasarkan nomor awalnya. Lalu, pada fungsi void `*moveFilesThread` akan dijalankan oleh masing-masing thread, yaitu trabowo dan peddy. Lalu, akan dicek genre berdasarkan nama filenya, kemudian menentukan tujuan foldernya dan menjalankan fungsi `writeActivityLog`. Tidak lupa untuk membebaskan memori dengan free.
-
-Kemudian, fungsi void `writeTotalLog` untuk menulis ke total.txt jumlah film masing-masing genre dan juga top filmnya. Lalu, pada fungsi void `sortFileGenre` akan membuat folder FilmAnimasi, FilmDrama, dan FilmHorror. Kemudian, dipanggil fungsi `listFiles` untuk mendapatkan semua file yang sudah terurut. File akan dibagi 2 bagian, bagian trabowo (1-25) dan peddy (26-50), lalu buat 2 thread untuk memindahkan file secara pararel. Setelah selesai, memori files dan paths akan dibebaskan. Lalu, pada fungsi main tinggal memanggil fungsi `sortFileGenre` dan `writeTotalLog`
+Kemudian, fungsi void ```writeTotalLog``` untuk menulis ke total.txt jumlah film masing-masing genre dan juga top filmnya. Lalu, pada fungsi void ```sortFileGenre``` akan membuat folder FilmAnimasi, FilmDrama, dan FilmHorror. Kemudian, dipanggil fungsi ```listFiles``` untuk mendapatkan semua file yang sudah terurut. File akan dibagi 2 bagian, bagian trabowo (1-25) dan peddy (26-50), lalu buat 2 thread untuk memindahkan file secara pararel. Setelah selesai, memori files dan paths akan dibebaskan. Lalu, pada fungsi main tinggal memanggil fungsi ```sortFileGenre``` dan ```writeTotalLog```
 
 ##### Kendala
-
 Kode saya direvisi karena hasil log dalam recap.txt tidak berurutan. Pada awalnya, membuat 3 thread untuk masing-masing genre, tapi sekarang saya ganti menjadi 2 thread untuk trabowo dan peddy.
 
 #### Soal D - ZIP Folder Baru
@@ -463,16 +455,346 @@ int main() {
 }
 ```
 
-![Hasil terminal](/assets/task-1/task1-soalD.png 'SS 1D')
-![Hasil zip folder](/assets/task-1/task1-soalD2.png 'SS 1D')
+![Hasil terminal](/assets2/taskpertama/task1-soalD.png "SS 1D")
+![Hasil zip folder](/assets2/taskpertama/task1-soalD2.png "SS 1D")
 
 ##### Penjelasan
+deklarasi array zip dan array folder. Kemudian, buat 3 fork untuk mengzip masing-masing genre. Jika pid < 0 artinya fork gagal, dan jika pid == 0, child proses akan menjalankan execv yang berisi argumen untuk mengzip folder. Jika execv tidak berhasil dijalankan, 
+maka akan mengeluarkan pesan error dan exit(1). Kemudian, ```wait(NULL)``` untuk menunggu proses child selesai dijalankan. 
 
-deklarasi array zip dan array folder. Kemudian, buat 3 fork untuk mengzip masing-masing genre. Jika pid < 0 artinya fork gagal, dan jika pid == 0, child proses akan menjalankan execv yang berisi argumen untuk mengzip folder. Jika execv tidak berhasil dijalankan,
-maka akan mengeluarkan pesan error dan exit(1). Kemudian, `wait(NULL)` untuk menunggu proses child selesai dijalankan.
-
-Setelah itu, buat 3 fork lagi untuk menjalankan perintah remove folder. Kemudian, buat `wait(NULL)` sebanyak 3 kali untuk menunggu execv berhasil dijalankan.
+Setelah itu, buat 3 fork lagi untuk menjalankan perintah remove folder. Kemudian, buat ```wait(NULL)``` sebanyak 3 kali untuk menunggu execv berhasil dijalankan.
 
 #### Kendala
-
 Awalnya, saya tidak tahu bahwa setelah mengzip kembali folder, harus dilakukan juga penghapusan folder lama, karena tidak tertera secara eksplisit pada soal.
+
+### Laporan Task 2 - Organize and Analyze Anthony's Favorite Films
+
+#### Soal A - One Click and Done!
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <ctype.h>
+#include <time.h>
+#include <pthread.h>
+#define MAX_LINE 1000
+
+void problem_a (){
+    pid_t pid;
+    int status;
+
+    pid = fork();
+    if (pid == 0){
+        char *argv[] = {"wget", "-O", "netflixData.zip", "https://drive.google.com/uc?export=download&id=12GWsZbSH858h2HExP3x4DfWZB1jLdV-J", NULL};
+        execvp("wget", argv);
+    } else wait(&status);
+
+    pid = fork();
+    if (pid == 0){
+        char *argv[] = {"mkdir", "-p", "film", NULL};
+        execvp("mkdir", argv);
+    } else wait(&status);
+
+    pid = fork();
+    if (pid == 0){
+        char *argv[] = {"unzip", "-o", "netflixData.zip", "-d", "film", NULL};
+        execvp("unzip", argv);
+    } else wait(&status);
+
+    pid = fork();
+    if (pid == 0){
+        char *argv[] = {"rm", "-f", "netflixData.zip", NULL};
+        execvp("rm", argv);
+    } else wait(&status);
+}
+```
+
+##### Penjelasan
+Pada fungsi `problem_a()`. Pertama, menggunakan fork() untuk membuat child process, lalu execvp() menjalankan perintah `wget` untuk mengunduh file netflixData.zip dari google drive. Lalu, program membuat folder baru bernama film menggunakan `mkdir -p film`. Setelah itu, file ZIP yang telah diunduh akan diekstrak ke dalam folder `film/` dengan perintah `unzip -o netflixData.zip -d film`. Terakhir, file ZIP yang sudah diekstrak akan dihapus menggunakan perintah `rm -f netflixData.zip`. Setiap proses berjalan satu per satu dengan wait() untuk memastikan setiap anak proses selesai sebelum melanjutkan ke proses berikutnya.
+
+![Csv](/assets/task-2/soalA.png "SS hasil kode.")
+
+##### Kendala
+Tidak ada.
+
+#### Soal B - Sorting Like a Pro
+
+```c
+void separator (char *baris, char *kolom[]){
+    int flag = 0, indeks_kolom = 0, indeks_temp = 0;
+    char temp[MAX_LINE], *ptr = baris;
+
+    while (*ptr != '\0'){
+        if (*ptr == '"'){
+            flag = !flag;
+            temp[indeks_temp++] = *ptr;
+        } else if (*ptr == ',' && flag == 0){
+            temp[indeks_temp] = '\0';
+            kolom[indeks_kolom++] = strdup(temp);
+            indeks_temp = 0;
+        } else {
+            temp[indeks_temp++] = *ptr;
+        }
+        ptr++;
+    }
+
+    temp[indeks_temp] = '\0';
+    kolom[indeks_kolom++] = strdup(temp);
+}
+
+void file_log (char *kategori, char *judul){
+    FILE *log = fopen("log.txt", "a");
+
+    char jam[9];
+
+    time_t total_detik;
+    struct tm *detail_waktu;
+    time(&total_detik);
+    detail_waktu = localtime(&total_detik);
+
+    strftime(jam, sizeof(jam), "%H:%M:%S", detail_waktu);
+
+    fprintf(log, "[%s] Proses mengelompokkan berdasarkan %s: sedang mengelompokkan untuk film %s\n", jam, kategori, judul);
+    fclose(log);
+}
+
+
+void judul (char *file_csv){
+    int status;
+    pid_t pid = fork();
+    if (pid == 0){
+        char *argv[] = {"mkdir", "-p", "judul", NULL};
+        execvp("mkdir", argv);
+    } else wait(&status);
+
+    FILE *file = fopen(file_csv, "r");
+
+    char baris[MAX_LINE];
+    fgets(baris, MAX_LINE, file);
+
+    while (fgets(baris, MAX_LINE, file)){
+        baris[strcspn(baris, "\n")] = '\0';
+
+        char *kolom[4];
+        separator(baris, kolom);
+
+        char *judul = kolom[0];
+        char *sutradara = kolom[1];
+        char *tahun = kolom[3];
+
+        file_log("Abjad", judul);
+
+        char karakter = judul[0];
+        char nama_file[20];
+
+        if (isalnum(karakter)) snprintf(nama_file, sizeof(nama_file), "judul/%c.txt", karakter);
+        else snprintf(nama_file, sizeof(nama_file), "judul/#.txt");
+
+        FILE *txt = fopen(nama_file, "a");
+        fprintf(txt, "%s - %s - %s\n", judul, tahun, sutradara);
+        fclose(txt);
+    }
+    fclose(file);
+}
+
+void tahun (char *file_csv){
+    int status;
+    pid_t pid = fork();
+    if (pid == 0){
+        char *argv[] = {"mkdir", "-p", "tahun", NULL};
+        execvp("mkdir", argv);
+    } else wait(&status);
+
+    FILE *file = fopen(file_csv, "r");
+
+    char baris[MAX_LINE];
+    fgets(baris, MAX_LINE, file);
+
+    while (fgets(baris, MAX_LINE, file)){
+        baris[strcspn(baris, "\n")] = '\0';
+
+        char *kolom[4];
+        separator(baris, kolom);
+
+        char *judul = kolom[0];
+        char *sutradara = kolom[1];
+        char *tahun = kolom[3];
+
+        file_log("Tahun", judul);
+
+        char nama_file[15];
+        snprintf(nama_file, sizeof(nama_file), "tahun/%s.txt", tahun);
+
+        FILE *txt = fopen(nama_file, "a");
+        fprintf(txt, "%s - %s - %s\n", judul, tahun, sutradara);
+        fclose(txt);
+    }
+    fclose(file);
+}
+
+int main (){
+    char *path = "film/netflixData.csv";
+    int pilihan;
+
+    for (;;){
+        printf("1. Download File\n");
+        printf("2. Mengelompokkan Film\n");
+        printf("3. Membuat Report\n");
+        printf("Pilihan: ");
+        scanf("%d", &pilihan);
+
+        if (pilihan == 1) problem_a();
+        else if (pilihan == 2){
+            int status;
+            pid_t pid1 = fork();
+            if (pid1 == 0){
+            	judul(path);
+				exit(0);
+	    	}
+            wait(&status);
+
+            pid_t pid2 = fork();
+            if (pid2 == 0){
+			tahun(path);
+			exit(0);
+	    	}
+            wait(&status);
+        } else if (pilihan == 3) laporan(path);
+         else break;
+    }
+}
+```
+
+![Kelompok](/assets/task-2/soalB-kelompok.png "SS hasil kode.")
+![Log](/assets/task-2/soalB-log.png "SS hasil kode.")
+
+##### Penjelasan
+Pada soal Sorting Like a Pro, program bertujuan untuk mengelompokkan film berdasarkan huruf pertama dari judul film dan tahun rilisnya. Fungsi `separator()` membaca per karakter dan membedakan mana koma yang sebagai pemisah kolom dan mana yang hanya bagian dari teks di dalam tanda kutip dengan variabel `flag` sebagai penanda sehingga setiap baris dapat dipisahkan menjadi array kolom. Fungsi `file_log()` digunakan untuk mencatat setiap aktivitas pengelompokan film ke dalam file `log.txt` dengan format waktu real-time [HH:MM:SS] dengan keterangan proses tersebut kategori "Abjad" atau "Tahun" dan nama film yang dikelompokkan.
+
+Fungsi `judul()`. Pertama membuat folder `judul/` dengan perintah `mkdir`. Lalu membuka file CSV film/netflixData.csv. Lalu skip header dengan perintah `fgets` dan membaca baris per baris, kemudian memisahkan isi baris dengan memanggil fungsi `separator()`. Mengambil huruf pertama dari judul film, menentukan apakah huruf tersebut alfanumerik atau tidak menggunakan `isalnum()` dan menuliskan informasi `Judul - Tahun - Sutradara` ke dalam file teks yang sesuai. Setiap perulangan juga memanggil `file_log` untuk mencatat aktifitas ke dalam `log.txt`. Sedangkan, di fungsi `tahun()` memproses hal yang sama dengan fungsi `judul()` yang membedakan hanya membuat folder `tahun/` dan mengelompokkan film berdasarkan tahun rilis. Agar kedua pengelompokan ini terjadi secara paralel dengan cara menggunakan 2 child proses di `main()`, yaitu pertama membuat child process untuk memanggil fungsi `judul()` dan parent process melakukan wait(). Lalu membuat child process kedua untuk memanggil `tahun()` dan juga dilanjutkan dengan `wait()` sehingga kedua pengelompokan bisa berjalan bersamaan.
+
+##### Kendala
+Saat mengelompokkan kolom sesuai header karena ada satu kolom terdapat beberapa data sehingga tidak bisa dipisahkan dengan menggunakan `strtok`
+
+#### Soal C - The Ultimate Movie Report
+
+```c
+typedef struct Report {
+    char negara[100];
+    int sebelum;
+    int setelah;
+} Report;
+
+Report statistik[100];
+int jumlah_negara = 0;
+
+void *negara (void *arg){
+    char *file_csv = (char*)arg;
+    FILE *file = fopen(file_csv, "r");
+
+    char baris[MAX_LINE];
+    fgets(baris, MAX_LINE, file);
+
+    while (fgets(baris, MAX_LINE, file)){
+        baris[strcspn(baris, "\n")] = '\0';
+
+        char *kolom[4];
+        separator(baris, kolom);
+
+        char *negara = kolom[2];
+        int tahun = atoi(kolom[3]);
+
+        int i;
+        for (i = 0; i < jumlah_negara; i++){
+            if (strcmp(statistik[i].negara, negara) == 0){
+                if (tahun < 2000) statistik[i].sebelum++;
+                else statistik[i].setelah++;
+                break;
+            }
+        }
+
+        if (i == jumlah_negara){
+            strcpy(statistik[jumlah_negara].negara, negara);
+            if (tahun < 2000){
+                statistik[jumlah_negara].sebelum = 1;
+                statistik[jumlah_negara].setelah = 0;
+            } else {
+                statistik[jumlah_negara].sebelum = 0;
+                statistik[jumlah_negara].setelah = 1;
+            }
+            jumlah_negara++;
+        }
+    }
+    fclose(file);
+    return NULL;
+}
+
+void laporan (char *file_csv){
+    pthread_t thread;
+    pthread_create(&thread, NULL, negara, file_csv);
+    pthread_join(thread, NULL);
+
+    char nama_file[100], tanggal[10];
+
+    time_t total_detik;
+    struct tm *detail_waktu;
+    time(&total_detik);
+    detail_waktu = localtime(&total_detik);
+
+    strftime(tanggal, sizeof(tanggal), "%d%m%Y", detail_waktu);
+    sprintf(nama_file, "report_%s.txt", tanggal);
+    FILE *report = fopen(nama_file, "w");
+
+    for (int i = 0; i < jumlah_negara; i++){
+        fprintf(report, "%d. Negara: %s\n", i+1, statistik[i].negara);
+        fprintf(report, "Film sebelum 2000: %d\n", statistik[i].sebelum);
+        fprintf(report, "Film setelah 2000: %d\n\n", statistik[i].setelah);
+    }
+    fclose(report);
+}
+
+int main (){
+    char *path = "film/netflixData.csv";
+    int pilihan;
+
+    for (;;){
+        printf("1. Download File\n");
+        printf("2. Mengelompokkan Film\n");
+        printf("3. Membuat Report\n");
+        printf("Pilihan: ");
+        scanf("%d", &pilihan);
+
+        if (pilihan == 1) problem_a();
+        else if (pilihan == 2){
+            int status;
+            pid_t pid1 = fork();
+            if (pid1 == 0){
+            	judul(path);
+		exit(0);
+	    }
+            wait(&status);
+
+            pid_t pid2 = fork();
+            if (pid2 == 0){
+		tahun(path);
+		exit(0);
+	    }
+            wait(&status);
+        } else if (pilihan == 3) laporan(path);
+         else break;
+    }
+}
+```
+
+![UI & Report](/assets/task-2/soalC.png "SS hasil kode.")
+
+##### Penjelasan
+ `struct Report` berisi `negara` untuk menyimpan nama negara, serta `sebelum` dan `setelah` untuk menghitung berapa banyak film dari negara tersebut yang dirilis sebelum dan sesudah tahun 2000. Lalu fungsi `negara()` membuka file CSV dan dibaca per baris dan setiap baris dipisahkan kolomnya menggunakan fungsi `separator()`, diambil data negara dari kolom ketiga dan tahun rilis dari kolom keempat. Lalu dilakukan perulangan dan membandingkan `statistik[i].negara` dengan `negara` jika tidak ada maka `negara` tersebut akan dicopy. Jika `tahun` < 200 maka `sebelum` akan diinisialisai 1 dan `setelah` 0 dan `jumlah_negara` ditambah 1 dan sebaliknya. Jika sudah pernah dicopy maka akan ditambaha sesuai tahunnya dan di break.	
+
+ Setelah semua baris diproses, fungsi `negara()` akan mengembalikan NULL. Setelah thread selesai melakukan tugasnya dan selesai bergabung (pthread_join). Program membuat file laporan dengan nama report_ddmmyyyy.txt di fungsi `laporan()` di mana tanggalnya diambil dari waktu saat ini menggunakan `strftime()`. Lalu diisi dengan daftar negara yang sudah diproses sebelumnya, diawali dengan nomor urut, nama negara, jumlah film sebelum 2000, dan jumlah film setelah 2000. Lalu menambahkan antarmuka terminal di fungsi main.
+
+##### Kendala
+Tidak ada.
