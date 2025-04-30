@@ -412,6 +412,8 @@ int main() {
 }
 ```
 
+![Hasil Soal A](/assets/task-3/soal-A.jpg)
+
 ##### Penjelasan
 
 Proses fetch data manhwa menggunakan Jikan API `https://api.jikan.moe/v4/manga/{id}` dengan parameter yang harus diberikan adalah id dari manga/manhwa yang ingin dicari.
@@ -526,6 +528,8 @@ int main() {
 }
 ```
 
+![Hasil Soal B](/assets/task-3/soal-B.jpg)
+
 ##### Penjelasan
 
 Pada Soal B, semua file .txt yang ada didalam folder `Manhwa/` diminta untuk di-zip-kan dan dimasukkan ke dalam folder baru `Archive/`.
@@ -552,6 +556,8 @@ size_t writeToJpg(void *contents, size_t size, size_t nmemb, FILE *userp) {
   size_t written = fwrite(contents, size, nmemb, userp);
   return written;
 }
+
+pthread_mutex_t download_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *downloadImage(void *arg) {
   ImageThread *imgt;
@@ -588,41 +594,39 @@ void performDownloadImages(ManhwaStats *mh) {
   createFolderSysCall("Heroines");
 
   for (int i = 0; i < MH_COUNT; i++) {
+    pthread_mutex_lock(&download_mutex);
     char path[512] = {0};
 
     snprintf(path, sizeof(path), "Heroines/%s", mh_heroines[i]);
     createFolderSysCall(path);
 
     int numdwn = mh[i].mon_of_rel;
-    if (fork() == 0) {
 
-      pthread_t hr_downloads[numdwn];
-      for (int j = 0; j < numdwn; j++) {
+    pthread_t hr_downloads[numdwn];
+    for (int j = 0; j < numdwn; j++) {
 
-        char dwn_path[512], cwd[256];
-        if (getcwd(cwd, sizeof(cwd)) == NULL)
-          report_and_error("getcwd() error...");
+      char dwn_path[512], cwd[256];
+      if (getcwd(cwd, sizeof(cwd)) == NULL)
+        report_and_error("getcwd() error...");
 
-        snprintf(dwn_path, sizeof(dwn_path), "%s/Heroines/%s/%s_%d.jpg", cwd,
-                 mh_heroines[i], mh_heroines[i], j + 1);
+      snprintf(dwn_path, sizeof(dwn_path), "%s/Heroines/%s/%s_%d.jpg", cwd,
+               mh_heroines[i], mh_heroines[i], j + 1);
 
-        ImageThread *imgt = malloc(sizeof(ImageThread));
+      ImageThread *imgt = malloc(sizeof(ImageThread));
 
-        imgt->url_image = strdup((&mh[i])->url_image);
-        imgt->dwn_path = strdup(dwn_path);
+      imgt->url_image = strdup((&mh[i])->url_image);
+      imgt->dwn_path = strdup(dwn_path);
 
-        printf("Downloading images %d-%d: %s...\n", i + 1, j + 1,
-               mh[i].title_english);
-        pthread_create(&hr_downloads[j], NULL, downloadImage, (void *)imgt);
-      }
+      printf("Downloading images %d-%d: %s...\n", i + 1, j + 1,
+             mh[i].title_english);
+      pthread_create(&hr_downloads[j], NULL, downloadImage, (void *)imgt);
 
-      for (int j = 0; j < numdwn; j++) {
-        pthread_join(hr_downloads[j], NULL);
-      }
-
-      exit(0);
+      pthread_mutex_unlock(&download_mutex);
     }
-    wait(NULL);
+
+    for (int j = 0; j < numdwn; j++) {
+      pthread_join(hr_downloads[j], NULL);
+    }
   }
 }
 
@@ -649,6 +653,9 @@ int main() {
 }
 ```
 
+![Hasil Soal C](/assets/task-3/soal-C1.jpg)
+![Hasil Soal C](/assets/task-3/soal-C2.jpg)
+
 ##### Penjelasan
 
 Pada Soal C, terdapat tugas untuk mendownload sebuah image dari internet yang dimana gambar yang akan didownload berisi karakter FMC atau heroine
@@ -671,11 +678,8 @@ dengan mendefinisikan variabel `hr_downloads[numdown]` dengan numdown adalah ber
 Kemudian untuk membuat thread, digunakan fungsi `pthread_create()` dengan fungsi thread yang digunakan adalah `downloadImage`. Setelah thread-thread tersebut selesai melakukan tugas
 download gambar, satu-persatu thread akan dijoin ke process menggunakan `pthread_join()`.
 
-Karena di soal diinginkan untuk pendownload-an gambar dilakukan secara urut sesuai dengan list manhwa yang diberikan, maka digunakan juga teknik multi-processing yang didalam tiap-tiap
-fork adalah pendownload-an yang dilakukan secara multi-threading pada penjelasan sebelumnya. Untuk menghindari manhwa B lebih dulu menyelesaikan tugas pendownload-an nya dibanding manhwa A,
-maka di tiap-tiap fork (child process), sebelum melanjutkan pada child process selanjutnya, ditambahkan fungsi `wait(NULL)` sehingga eksekusi di main/parent process sementara diblock sampai
-child process selesai atau exit. Pendownload-an per manhwa akan diletakkan di masing-masing folder baru didalam `Heroines/` dengan nama folder adalah nama belakang / panggilan dari masing-masing
-karakter Heroine dari masing-masing Manhwa.
+Karena di soal diinginkan untuk pendownload-an gambar dilakukan secara urut sesuai dengan list manhwa yang diberikan, maka digunakan juga teknik mutex dengan memanfaatkan `pthread_mutex_lock()` dan
+`pthread_mutex_unlock` untuk mencegah thread untuk melakukan race condition dimana dapat menimbulkan pendownload-an gambar pada manhwa B lebih dulu daripada manhwa A.
 
 ##### Kendala
 
@@ -811,6 +815,8 @@ int main() {
   return 0;
 }
 ```
+
+![Hasil Soal D](/assets/task-3/soal-D.jpg)
 
 ##### Penjelasan
 
