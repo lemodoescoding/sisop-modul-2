@@ -64,20 +64,7 @@ int createFileForMQ(const char *name) {
   return 0;
 }
 
-void cleanup_sighandler(int signum) {
-  kill(getpgrp(), signum);
-  exit(0);
-}
-
-void stp_sig_handler() {
-  struct sigaction sa;
-  sa.sa_handler = cleanup_sighandler;
-  sigemptyset(&sa.sa_mask);
-  sa.sa_flags = 0;
-
-  sigaction(SIGINT, &sa, NULL);
-  sigaction(SIGTERM, &sa, NULL);
-}
+void terminate_program(int sig) { STOP_PROGRAM = 1; }
 
 int main(int argc, char *argv[]) {
 
@@ -92,6 +79,9 @@ int main(int argc, char *argv[]) {
 
   if (createFileForMQ(MQ_PATH) == -1)
     report("open() failed to create mq file...", 1);
+
+  signal(SIGINT, terminate_program);
+  signal(SIGTERM, terminate_program);
 
   int shmid, semid;
   int sem_logid;
@@ -152,6 +142,8 @@ int main(int argc, char *argv[]) {
 
           usleep(500);
         }
+
+        usleep(500);
 
         QueuedMessage qm = {0};
         for (int i = 1; i <= loadBalancer; i++) {
