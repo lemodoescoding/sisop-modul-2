@@ -1,124 +1,265 @@
-#include <ctype.h>
 #include <dirent.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
-int total_file = 0;
-pthread_mutex_t mutexLog = PTHREAD_MUTEX_INITIALIZER;
-int animasi = 0, drama = 0, horror = 0;
+pthread_mutex_t mutex_log = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_logend = PTHREAD_MUTEX_INITIALIZER;
 
-void activityLog(const char *judul, const char *genre, const char *penulis) {
-  time_t now = time(NULL);
-  struct tm *waktu = localtime(&now);
+int animasi = 0, drama = 0, horor = 0;
 
-  pthread_mutex_lock(&mutexLog);
-  FILE *log = fopen("recap.txt", "a");
-  fprintf(log, "[%02d-%02d-%4d %02d:%02d:%02d] %s: %s telah dipindahkan ke %s\n",
-          waktu->tm_mday, waktu->tm_mon + 1, waktu->tm_year + 1900,
-          waktu->tm_hour, waktu->tm_min, waktu->tm_sec, penulis, judul, genre);
-  fclose(log);
-  pthread_mutex_unlock(&mutexLog);
+typedef struct {
+  char **files;
+  char **full_paths;
+  char *penulis;
+  int count, i_start, i_end;
+  int *genre_counter;
+} ThreadArgs;
+
+void createFolderMk(const char *dirname) {
+  char path[256];
+  snprintf(path, sizeof(path), "film/%s", dirname);
+  mkdir(path, 0755); 
 }
 
-void *sortirfilm(void *argv) {
-  char *genre = (char *)argv;
-  DIR *folder = opendir("film");
-  if (!folder) {
-    perror("Tidak bisa membuka folder film");
-    return NULL;
+
+void writeActivityLog(const char *judul, const char *genre,
+                      const char *penulis) {
+  time_t now = time(NULL);
+  struct tm *tme = localtime(&now);
+
+  pthread_mutex_lock(&mutex_log);
+  FILE *log = fopen("recap.txt", "a");
+  if (log) {
+    fprintf(log,
+            "[%02d-%02d-%4d %02d:%02d:%02d] %s: %s telah dipindahkan ke %s\n",
+            tme->tm_mday, tme->tm_mon + 1, tme->tm_year + 1900, tme->tm_hour,
+            tme->tm_min, tme->tm_sec, penulis, judul, genre);
+    fclose(log);
   }
+  usleep(200);
+  pthread_mutex_unlock(&mutex_log);
+}
 
-  struct dirent *entri;
-  char folderbaru[100];
-  char genreS[20];
-  strcpy(genreS, genre);
-  genreS[0] = toupper(genreS[0]);
-  snprintf(folderbaru, sizeof(folderbaru), "film/Film%s", genreS);
+int compareFileName(const void *a, const void *b) {
+  char *strA = strdup(*(char **)a);
+  char *strB = strdup(*(char **)b);
 
-  mkdir(folderbaru, 0777); 
+  char *token_a = strtok(strA, "_");
+  char *token_b = strtok(strB, "_");
 
-  while ((entri = readdir(folder)) != NULL) {
-    int len = strlen(entri->d_name);
-    if (len > 4 && strcmp(entri->d_name + len - 4, ".jpg") == 0) {
-      char genre_file[20];
-      sscanf(entri->d_name, "%*[^_]_%*[^_]_%[^.].jpg", genre_file);
+  int num_a = atoi(token_a);
+  int num_b = atoi(token_b);
 
-      if (strcmp(genre_file, genre) == 0) {
-        int nomor = 0;
-        sscanf(entri->d_name, "%d_", &nomor);
-        const char *penulis = (nomor < total_file / 2) ? "Trabowo" : "Peddy";
+  return num_a - num_b;
+}
 
-        char before[512], after[512];
-        snprintf(before, sizeof(before), "film/%s", entri->d_name);
-        snprintf(after, sizeof(after), "%s/%s", folderbaru, entri->d_name);
+void listFiles(char *dirname, char ***files_out, char ***full_path_out,
+               int *count) {
+  char cwd[512];
+  getcwd(cwd, sizeof(cwd));
 
-        rename(before, after);
+  DIR *dir = opendir(dirname);
+  struct dirent *ent;
 
-        activityLog(entri->d_name, folderbaru + 5, penulis);
+  char **files = NULL;
+  char **full_paths = NULL;
+  int cnt = 0;
 
-        if (strcmp(genre, "horror") == 0)
-          horror++;
-        else if (strcmp(genre, "animasi") == 0)
-          animasi++;
-        else if (strcmp(genre, "drama") == 0)
-          drama++;
-      }
+  while ((ent = readdir(dir)) != NULL) {
+    if (strcmp(".", ent->d_name) == 0 || strcmp("..", ent->d_name) == 0)
+      continue;
+
+    char fullpath[1024];
+    snprintf(fullpath, sizeof(fullpath), "%s/%s/%s", cwd, dirname, ent->d_name);
+
+    struct stat st;
+    if (stat(fullpath, &st) == 0 && !S_ISDIR(st.st_mode)) {
+      files = realloc(files, sizeof(char *) * (cnt + 1));
+      full_paths = realloc(full_paths, sizeof(char *) * (cnt + 1));
+      files[cnt] = strdup(ent->d_name);
+      full_paths[cnt] = strdup(ent->d_name);
+      cnt++;
     }
   }
 
-  closedir(folder);
+  closedir(dir);
+
+  qsort(files, cnt, sizeof(char *), compareFileName);
+  qsort(full_paths, cnt, sizeof(char *), compareFileName);
+
+  for (int i = 0; i < cnt; i++) {
+    char *filename = strdup(full_paths[i]);
+    char full[1024];
+
+    snprintf(full, sizeof(full), "%s/%s/%s", cwd, dirname, filename);
+
+    full_paths[i] = strdup(full);
+
+    free(filename);
+  }
+
+  *count = cnt;
+  *files_out = files;
+  *full_path_out = full_paths;
+}
+
+void *moveFilesThread(void *arg) {
+  ThreadArgs *args = (ThreadArgs *)arg;
+
+  char cwd[512];
+  getcwd(cwd, sizeof(cwd));
+
+  int count_tot = args->i_end - args->i_start + 1;
+  int penulis_sign = (strcmp(args->penulis, "Trabowo") == 0) ? 1 : 0;
+
+  int jml = 0;
+  int i = 0;
+
+  if (penulis_sign == 1) {
+    i = 0;
+  } else {
+    i = args->i_end;
+  }
+
+  while (jml < count_tot) {
+
+    int len = strlen(args->files[i]);
+
+    char after[1024] = {0};
+
+    if (strcmp(args->files[i] + len - 4, ".jpg") == 0 &&
+        strcmp(args->files[i] + len - 9, "drama.jpg") == 0) {
+      snprintf(after, sizeof(after), "%s/film/FilmDrama", cwd);
+      writeActivityLog(args->files[i], "FilmDrama", args->penulis);
+      drama++;
+    } else if (strcmp(args->files[i] + len - 4, ".jpg") == 0 &&
+               strcmp(args->files[i] + len - 11, "animasi.jpg") == 0) {
+      snprintf(after, sizeof(after), "%s/film/FilmAnimasi", cwd);
+      writeActivityLog(args->files[i], "FilmAnimasi", args->penulis);
+      animasi++;
+    } else if (strcmp(args->files[i] + len - 4, ".jpg") == 0 &&
+               strcmp(args->files[i] + len - 10, "horror.jpg") == 0) {
+      snprintf(after, sizeof(after), "%s/film/FilmHorror", cwd);
+      writeActivityLog(args->files[i], "FilmHorror", args->penulis);
+      horor++;
+    }
+
+    pthread_mutex_lock(&mutex_log);
+    pid_t cp_pid;
+    if ((cp_pid = fork()) == 0) {
+      char *argv[] = {"mv", args->full_paths[i], after, NULL};
+      execv("/bin/mv", argv);
+    }
+
+    waitpid(cp_pid, NULL, 0);
+
+    pthread_mutex_unlock(&mutex_log);
+
+    usleep(200);
+
+    if (penulis_sign == 1) {
+      i++;
+    } else {
+      i--;
+    }
+
+    jml++;
+  }
+
   return NULL;
 }
 
+void writeTotalLog() {
+  FILE *pf = fopen("total.txt", "w");
+  if (pf) {
+    fprintf(pf, "Jumlah film horror: %d\n", horor);
+    fprintf(pf, "Jumlah film animasi: %d\n", animasi);
+    fprintf(pf, "Jumlah film drama: %d\n", drama);
+    fprintf(pf, "Genre dengan jumlah film terbanyak: ");
+
+    if (horor >= animasi && horor >= drama)
+      fprintf(pf, "horror\n");
+    else if (animasi >= horor && animasi >= drama)
+      fprintf(pf, "animasi\n");
+    else
+      fprintf(pf, "drama\n");
+
+    fclose(pf);
+  }
+}
+
+void sortFileGenre() {
+  createFolderMk("FilmHorror");
+  createFolderMk("FilmAnimasi");
+  createFolderMk("FilmDrama");
+
+  char **files, **full_paths;
+  int count;
+
+  int i_begin = 0;
+  int i_mid = 0;
+
+  listFiles("film", &files, &full_paths, &count);
+
+  if (count % 2 == 0) {
+    i_mid = count / 2 - 1;
+  } else {
+    i_mid = count / 2;
+  }
+  int i_end = count - 1;
+
+  printf("%d %d %d\n", count, i_mid, i_begin);
+
+  pthread_t sort_th[2];
+  ThreadArgs sort_argst, sort_argnd;
+
+  sort_argst.files = (char **)malloc(sizeof(char *) * (count));
+  memcpy(sort_argst.files, files, sizeof(files[0]) * count);
+  sort_argst.full_paths = (char **)malloc(sizeof(char *) * (count));
+  memcpy(sort_argst.full_paths, full_paths, sizeof(full_paths[0]) * count);
+  sort_argst.i_start = i_begin;
+  sort_argst.i_end = i_mid;
+  sort_argst.count = count / 2;
+  sort_argst.penulis = strdup("Trabowo");
+
+  sort_argnd.files = (char **)malloc(sizeof(char *) * (count));
+  memcpy(sort_argnd.files, files, sizeof(files[0]) * count);
+  sort_argnd.full_paths = (char **)malloc(sizeof(char *) * (count));
+  memcpy(sort_argnd.full_paths, full_paths, sizeof(full_paths[0]) * count);
+  sort_argnd.i_start = i_mid + 1;
+  sort_argnd.i_end = i_end;
+  sort_argnd.count = count / 2;
+  sort_argnd.penulis = strdup("Peddy");
+
+  pthread_t sort_tid[2];
+
+  pthread_mutex_lock(&mutex_logend);
+  pthread_create(&sort_tid[0], NULL, moveFilesThread, (void *)&sort_argst);
+  pthread_create(&sort_tid[1], NULL, moveFilesThread, (void *)&sort_argnd);
+
+  pthread_join(sort_tid[0], NULL);
+  pthread_join(sort_tid[1], NULL);
+  pthread_mutex_unlock(&mutex_logend);
+
+  for (int i = 0; i < count; i++) {
+    free(files[i]);
+    free(full_paths[i]);
+  }
+
+  pthread_mutex_lock(&mutex_logend);
+  writeTotalLog();
+  pthread_mutex_unlock(&mutex_logend);
+}
+
+
 int main() {
-  DIR *folder = opendir("film");
-  if (!folder) {
-    perror("Tidak bisa membuka folder film");
-    return 1;
-  }
-
-  struct dirent *entri;
-  while ((entri = readdir(folder)) != NULL) {
-    int len = strlen(entri->d_name);
-    if (len > 4 && strcmp(entri->d_name + len - 4, ".jpg") == 0) {
-      total_file++;
-    }
-  }
-  closedir(folder);
-
-  pthread_t threads[3];
-  char *genres[] = {"horror", "animasi", "drama"};
-
-  for (int i = 0; i < 3; i++) {
-    pthread_create(&threads[i], NULL, sortirfilm, genres[i]);
-  }
-
-  for (int i = 0; i < 3; i++) {
-    pthread_join(threads[i], NULL);
-  }
-
-  FILE *f = fopen("total.txt", "w");
-  fprintf(f, "Jumlah film horror: %d\n", horror);
-  fprintf(f, "Jumlah film animasi: %d\n", animasi);
-  fprintf(f, "Jumlah film drama: %d\n", drama);
-
-  char *top_genre = "horror";
-  int countTop = horror;
-  if (drama > countTop) {
-    top_genre = "drama";
-    countTop = drama;
-  }
-  if (animasi > countTop) {
-    top_genre = "animasi";
-    countTop = animasi;
-  }
-
-  fprintf(f, "Genre dengan jumlah film terbanyak: %s\n", top_genre);
-  fclose(f);
+  sortFileGenre();
+  writeTotalLog();
   return 0;
 }
