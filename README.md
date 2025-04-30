@@ -40,15 +40,15 @@ void report_and_error(const char *msg) {
 }
 ```
 
-Terdapat fungsi report_and_error yang digunakan untuk mempersingkat penulisan perror yang digunakan
-statement yang ada dalam fungsi report_and_error. Fungsi report_and_error akan dipanggil dalam kasus ketika terjadi kesalahan dalam pemanggilan
+Terdapat fungsi `report_and_error` yang digunakan untuk mempersingkat penulisan perror yang digunakan
+statement yang ada dalam fungsi tersebut. Fungsi ini akan dipanggil dalam kasus ketika terjadi kesalahan dalam pemanggilan atau terjadi galat saat menginisialisasi variabel dengan
 fungsi lain seperti `fopen`,`shmget`, `semget`, dsb. Fungsi report_and_error memiliki satu parameter yang berisi custom message error
 dan di dalam fungsi report_and_error terdapat pemanggilan fungsi `perror` dengan argumen berisi custom message error tadi. Fungsi `perror`
 akan memberikan suatu buffer ke `stderr` dengan tambahan keterangan error otomatis saat perror ini dipanggil.
 Kemudian jika fungsi report_and_error maka program akan langsung berhenti karena adanya pemanggilan fungsi `exit` yang memaksa
 program untuk diberhentikan eksekusinya.
 
-#### Soal A -
+#### Soal A - Client Sends Message to Load Balancer
 
 ```c
 #include <fcntl.h>
@@ -187,7 +187,7 @@ disini saya custom pengiriman pesan agar mengirimkan sebuah string sebagai penan
 
 Untuk saat ini belum ada kendala untuk mengerjakan soal A
 
-### Soal B -
+### Soal B - Load Balancer Distributes Messages to Workers in Round-Robin
 
 ```c
 #include <fcntl.h>
@@ -256,20 +256,7 @@ int createFileForMQ(const char *name) {
   return 0;
 }
 
-void cleanup_sighandler(int signum) {
-  kill(getpgrp(), signum);
-  exit(0);
-}
-
-void stp_sig_handler() {
-  struct sigaction sa;
-  sa.sa_handler = cleanup_sighandler;
-  sigemptyset(&sa.sa_mask);
-  sa.sa_flags = 0;
-
-  sigaction(SIGINT, &sa, NULL);
-  sigaction(SIGTERM, &sa, NULL);
-}
+void terminate_program(int sig) { STOP_PROGRAM = 1; }
 
 int main(int argc, char *argv[]) {
 
@@ -284,6 +271,9 @@ int main(int argc, char *argv[]) {
 
   if (createFileForMQ(MQ_PATH) == -1)
     report("open() failed to create mq file...", 1);
+
+  signal(SIGINT, terminate_program);
+  signal(SIGTERM, terminate_program);
 
   int shmid, semid;
   int sem_logid;
@@ -415,13 +405,25 @@ int main(int argc, char *argv[]) {
 
 ##### Penjelasan
 
-Pada Soal B, ```loadbalancer
+Pada Soal B, `loadbalancer.c` akan menerima pesan yang dikirimkan melalui IPC shared memory yang dikirim oleh `client.c` yang juga menggunakan shared memory yang sama.
+Untuk menghindari adanya corrupt atau race condition di shared memory, maka baik di `loadbalancer.c` dan `client.c` masing-masing akan membuka dan menutup semaphore untuk pengaksesan
+shared memory secara bergantian. `loadbalancer.c` akan terus meng-listen shared memory untuk mendeteksi adanya pesan yang dikirim dari `client.c` menggunakan while loop yang hanya
+di terminate ketika program diberi interrupt `SIGINT` atau `SIGTERM`. Untuk menentukan apakah message yang dikirim oleh `client.c` adalah message terakhir, `loadbalancer.c` akan mendeteksi apakah payload
+yang dikirim oleh `client.c` berupa string `'end_of_message'` yang menandakan akhir dari message.
+
+Setelah payload `'end_of_message'` terdeteksi, maka selanjutnya pesan-pesan yang diterima oleh loadbalancer akan disimpan ke suatu struct `QueuedMessage` yang berisi payload message serta tipe pesan.
+`QueuedMessage` ini nantinya akan dikirimkan oleh loadbalancer ke worker-worker yang ada dengan tipe pesan sebagai identifier untuk pesan yang dikirimkan melalui IPC Message Queue untuk diproses lebih lanjut
+oleh worker tertentu.
+
+Pada saat menjalankan program loadbalancer dibutuhkan 1 buah argumen untuk mengetahui berapa banyak worker yang tersedia, hal ini bertujuan karena loadbalancer akan menyebar message yang sudah diterima
+ke worker-worker sejumlah N, dimana N adalah argumen yang menentukan berapa banyak worker yang akan menjadi penentu tipe message queue dan faktor pendistribusi-an pesan-pesan secara merata menggunakan
+metode round-robin. IPC message queue yang digunakan untuk mengirimkan message queue ke worker-worker memanfaatkan fungsi-funsi utility dari `<sys/msg.h>` untuk mengirimkan message queue.
 
 ##### Kendala
 
 Untuk saat ini belum ada kendala untuk mengerjakan soal B
 
-#### Soal C -
+#### Soal C - Worker Mencatat Pesan yang Diterima
 
 ```c
 #include <errno.h>
@@ -565,6 +567,8 @@ int main(int argc, char *argv[]) {
 ```
 
 ##### Penjelasan
+
+Pada Soal C,
 
 ##### Kendala
 
