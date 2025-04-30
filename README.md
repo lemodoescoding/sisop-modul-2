@@ -417,7 +417,8 @@ oleh worker tertentu.
 
 Pada saat menjalankan program loadbalancer dibutuhkan 1 buah argumen untuk mengetahui berapa banyak worker yang tersedia, hal ini bertujuan karena loadbalancer akan menyebar message yang sudah diterima
 ke worker-worker sejumlah N, dimana N adalah argumen yang menentukan berapa banyak worker yang akan menjadi penentu tipe message queue dan faktor pendistribusi-an pesan-pesan secara merata menggunakan
-metode round-robin. IPC message queue yang digunakan untuk mengirimkan message queue ke worker-worker memanfaatkan fungsi-funsi utility dari `<sys/msg.h>` untuk mengirimkan message queue.
+metode round-robin. IPC message queue yang digunakan untuk mengirimkan message queue ke worker-worker memanfaatkan fungsi-funsi utility dari `<sys/msg.h>` untuk mengirimkan message queue dengan memanfaatkan
+fungsi `msgsnd`. Message Queue disini diperlukan path untuk menyimpan queue pesan dan Message Queue ID yang harus sama pada penerima queue.
 
 ##### Kendala
 
@@ -568,7 +569,15 @@ int main(int argc, char *argv[]) {
 
 ##### Penjelasan
 
-Pada Soal C,
+Pada Soal C, Worker dibuat menggunakan thread dengan memanfaatkan fungsi-fungsi utility dari `<pthread.h>`. Pembuatan banyaknya thread tergantung pada argumen ketika `worker.c` dijalankan
+dimana banyaknya worker yang berjalan paling tidak harus memiliki jumlah yang sama ketika memberikan argumen pada file `loadbalancer.c`. Setiap worker diwakili oleh sebuah thread yang menjalankan
+fungsi `processMessageThread` yang menerima argumen pada saat pembuatan thread sebuah worker id yang berbentuk angka. Kemudian masing-masing thread akan meng-listen ke Message Queue yang dikirim
+dan mencocokkan tipe message nya berdasarkan worker id pada masing-masing worker.
+
+Penerimaan pesan dari Message Queue menggunakan cara yang sama pada saat mengirimkan pesan dari `loadbalancer.c` dengan menggunakan fungsi `msgrcv` berbeda dengan saat pengiriman yang menggunakan
+fungsi `msgsnd`. Message Queue ID dan path harus disamakan dengan yang sudah terdefinisi di `loadbalancer.c` agar pesan yang dikirim dari file tersebut dapat diterima oleh masing-masing thread worker.
+Kemudian setelah menerima pesan, thread worker yang sudah memproses isi pesan menuliskan log ke `sistem.log` dengan format yang sudah ditentukan. Semua thread akan dijoin dan diterminate
+ketika program `worker.c` diberikan signal `SIGINT` atau `SIGTERM`.
 
 ##### Kendala
 
@@ -631,6 +640,10 @@ int main(int argc, char *argv[]) {
 ```
 
 ##### Penjelasan
+
+Pada Soal D, setelah seluruh pesan yang dikirim oleh `loadbalancer.c` dan diterima oleh masing-masing thread worker, pada akhir message queue dari `loadbalancer.c`
+akan dikirimkan sebuah buffer berisi payload `'end_of_mq_worker'` yang menandai bahwa pesan dari masing-masing worker sudah mencapai akhir. Ketika payload pesan ini terdeteksi
+maka masing-masing worker akan melakukan log ke dalam `sistem.log` untuk mencatat berapa banyak message yang diterima oleh masing-masing thread worker.
 
 ##### Kendala
 
