@@ -65,6 +65,8 @@ int main() {
     return 0;
 }
 ```
+![Hasil curl & unzip](/assets2/taskpertama/task1-soalA.png "SS 1A")
+![Hasil curl & unzip](/assets2/taskpertama/task1-soalA2.png "SS 1A")
 
 ##### Penjelasan
 Dalam soal ini, menggunakan 2 fork. Fork pertama untuk mendownload ```film.zip``` yang terdapat pada link gdrive. Pada fork, jika pid < 0 maka fork gagal membuat proses baru. Jika pid == 0 maka fork berhasil membuat proses child. proses child akan menjalankan
@@ -112,6 +114,9 @@ int main(){
     return 0;
 }
 ```
+
+![Hasil pemilihan film](/assets2/taskpertama/task1-soalB.png "SS 1B")
+
 
 ##### Penjelasan
 Pada kode, ```DIR *folder=opendir("film")``` digunakan untuk membuka folder film dan ```*folder``` adalah pointer ke direktori filenya. 
@@ -396,6 +401,10 @@ int main() {
 }
 ```
 
+![Hasil pindah folder](/assets2/taskpertama/task1-soalC.png "SS 1C")
+![Hasil recap.txt](/assets2/taskpertama/task1-soalC2.png "SS 1C")
+![Hasil total.txt](/assets2/taskpertama/task1-soalC3.png "SS 1C")
+
 ##### Penjelasan
 Pertama, membuat mutex untuk digunakan nanti, buat variabel global, dan juga struct ```ThreadArgs```. void ```createFolderMk``` untuk membuat direktori baru, yaitu FilmAnimasi, FilmHorror, dan FilmDrama. Kemudian, void ```writeActivityLog``` untuk membuat log ```recap.txt```, menggunakan mutex sehingga hanya 1 thread dalam satu waktu yang bisa menulis ke ```recap.txt```, jika tidak menggunakan mutex bisa terjadi race condition. Lalu, menggunakan ```usleep(200)``` untuk memberi jeda thread bekerja agar tidak terjadi race condition.
 
@@ -447,6 +456,9 @@ int main() {
   }
 }
 ```
+
+![Hasil terminal](/assets2/taskpertama/task1-soalD.png "SS 1D")
+![Hasil zip folder](/assets2/taskpertama/task1-soalD2.png "SS 1D")
 
 ##### Penjelasan
 deklarasi array zip dan array folder. Kemudian, buat 3 fork untuk mengzip masing-masing genre. Jika pid < 0 artinya fork gagal, dan jika pid == 0, child proses akan menjalankan execv yang berisi argumen untuk mengzip folder. Jika execv tidak berhasil dijalankan, 
